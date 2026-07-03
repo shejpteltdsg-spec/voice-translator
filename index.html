@@ -112,6 +112,23 @@
   .vplay { font-family: inherit; font-size: 13px; font-weight: 700; border: none; background: #0ea5e9; color: #fff; border-radius: 10px; padding: 8px 12px; cursor: pointer; }
   .vnone { font-size: 12px; color: #94a3b8; line-height: 1.5; }
 
+  /* ===== 통역 통화 (앱 안 인터넷 통화) ===== */
+  .callbar { padding: 0 14px 10px; }
+  .calltoggle { width: 100%; font-family: inherit; font-size: 13px; font-weight: 700; color: #0ea5e9; background: #fff; border: none; border-radius: 12px; padding: 9px; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,.12); }
+  .callpanel { display: none; background: #fff; border-radius: 14px; margin-top: 8px; padding: 12px; box-shadow: 0 4px 10px rgba(0,0,0,.15); }
+  .callpanel.open { display: block; }
+  .callrow { display: flex; gap: 8px; }
+  .cbtn { flex: 1; font-family: inherit; font-size: 14px; font-weight: 800; border: none; border-radius: 12px; padding: 11px 8px; cursor: pointer; background: #0ea5e9; color: #fff; }
+  .cbtn.join { background: #6366f1; }
+  .cbtn.call { width: 100%; margin-top: 8px; background: #22c55e; font-size: 16px; }
+  .cbtn.call.on { background: #ef4444; }
+  .cbtn.hang { width: 100%; margin-top: 8px; background: #94a3b8; }
+  .ccode { font-size: 34px; font-weight: 900; letter-spacing: 6px; text-align: center; color: #0ea5e9; padding: 12px; background: #f0f9ff; border-radius: 12px; margin-top: 10px; }
+  .cinput { width: 100%; font-family: inherit; font-size: 22px; font-weight: 800; text-align: center; letter-spacing: 5px; text-transform: uppercase; border: 2px solid #e2e8f0; border-radius: 12px; padding: 10px; margin-top: 10px; }
+  .cnote { font-size: 12px; color: #64748b; text-align: center; margin-top: 8px; line-height: 1.5; }
+  .clive { font-size: 15px; font-weight: 800; text-align: center; color: #0f766e; }
+  .ccopy { font-family: inherit; font-size: 12px; font-weight: 700; border: none; background: #e0f2fe; color: #0369a1; border-radius: 999px; padding: 6px 14px; margin: 8px auto 0; cursor: pointer; display: block; }
+
   /* ===== 설치 안내 배너 ===== */
   .install { display: none; background: #fef9c3; color: #713f12; font-size: 13px; padding: 8px 12px; text-align: center; }
   .install button { font-family: inherit; margin-left: 8px; border: none; background: #f59e0b; color: #fff; font-weight: 700; padding: 5px 12px; border-radius: 999px; cursor: pointer; }
@@ -138,6 +155,34 @@
   <div class="voicebar">
     <button class="voicetoggle" id="voiceToggle">🔊 목소리 설정 (남 / 여 · 여러 목소리) ▾</button>
     <div class="voicepanel" id="voicePanel"></div>
+  </div>
+
+  <div class="callbar">
+    <button class="calltoggle" id="callToggle">📞 멀리 있는 사람과 통역 통화 (둘 다 앱 필요) ▾</button>
+    <div class="callpanel" id="callPanel">
+      <div id="callSetup">
+        <div class="callrow">
+          <button class="cbtn host" id="hostBtn">🆕 방 만들기</button>
+          <button class="cbtn join" id="joinBtn">🔑 코드로 참여</button>
+        </div>
+        <div id="hostArea" style="display:none">
+          <div class="ccode" id="roomCode">…</div>
+          <button class="ccopy" id="copyCode">📋 코드 복사</button>
+          <div class="cnote">이 코드를 상대에게 알려주세요.<br>상대가 참여하면 자동으로 연결돼요.</div>
+        </div>
+        <div id="joinArea" style="display:none">
+          <input id="codeInput" class="cinput" placeholder="코드" maxlength="5" autocapitalize="characters" autocomplete="off" />
+          <button class="cbtn" id="connectBtn" style="width:100%;margin-top:8px">연결하기</button>
+        </div>
+        <div class="cnote" id="callStatus"></div>
+      </div>
+      <div id="callLive" style="display:none">
+        <div class="clive">🟢 연결됨 · 상대 언어: <span id="peerLangLabel">?</span></div>
+        <button class="cbtn call" id="callBtn">📞 통역 통화 시작</button>
+        <button class="cbtn hang" id="hangBtn">연결 끊기</button>
+        <div class="cnote">🎧 <b>이어폰</b>을 쓰면 소리 겹침 없이 깔끔해요.<br>내가 말하면 상대는 자기 언어로, 상대 말은 내가 내 언어로 들어요.</div>
+      </div>
+    </div>
   </div>
 
   <div class="install" id="install">
@@ -539,6 +584,7 @@ async function ensureMic() {
 
 async function autoStart() {
   if (!SR) { setStatus("⚠️ 안드로이드 크롬에서 음성 인식이 가장 잘 돼요."); return; }
+  if (callActive) { setStatus("📞 통역 통화 중에는 자동 모드를 쓸 수 없어요."); return; }
   setStatus("🎤 마이크 권한을 확인하는 중… 팝업이 뜨면 ‘허용’을 눌러주세요");
   const ok = await ensureMic();
   if (!ok) {
@@ -567,6 +613,134 @@ autoBtn.onclick = () => (autoMode ? autoStop() : autoStart());
 function setTurn(lang) { turnLang = lang; try { currentRec && currentRec.stop(); } catch (_) {} }
 micMe.onclick   = () => (autoMode ? setTurn(myLangEl.value)    : listen(myLangEl.value, theirLangEl.value, "me", micMe));
 micThem.onclick = () => (autoMode ? setTurn(theirLangEl.value) : listen(theirLangEl.value, myLangEl.value, "them", micThem));
+
+/* =========================================================
+   📞 앱 안 통역 통화 (WebRTC / PeerJS) — 상대도 이 앱 필요
+   내가 말함 → 내 언어로 인식 → 상대 언어로 번역 → 전송
+   → 상대 폰이 상대 언어로 읽어줌 (반대도 동일)
+========================================================= */
+let peer = null, conn = null, peerLang = null, callActive = false, speaking = false, peerLibLoading = null;
+const gid = (id) => document.getElementById(id);
+function setCallStatus(m) { gid("callStatus").textContent = m || ""; }
+
+function loadPeerJS() {
+  if (window.Peer) return Promise.resolve();
+  if (peerLibLoading) return peerLibLoading;
+  peerLibLoading = new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = "https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js";
+    s.onload = resolve; s.onerror = () => reject(new Error("load fail"));
+    document.head.appendChild(s);
+  });
+  return peerLibLoading;
+}
+const PEER_OPTS = { config: { iceServers: [
+  { urls: "stun:stun.l.google.com:19302" },
+  { urls: "turn:openrelay.metered.ca:80", username: "openrelayproject", credential: "openrelayproject" },
+  { urls: "turn:openrelay.metered.ca:443", username: "openrelayproject", credential: "openrelayproject" }
+] } };
+function randomCode() {
+  const c = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; let s = "";
+  for (let i = 0; i < 5; i++) s += c[Math.floor(Math.random() * c.length)];
+  return s;
+}
+
+gid("callToggle").onclick = () => gid("callPanel").classList.toggle("open");
+gid("hostBtn").onclick = hostRoom;
+gid("joinBtn").onclick = () => { gid("joinArea").style.display = "block"; gid("hostArea").style.display = "none"; setCallStatus(""); };
+gid("connectBtn").onclick = () => { const v = gid("codeInput").value.trim().toUpperCase(); if (v) joinRoom(v); };
+gid("copyCode").onclick = () => { try { navigator.clipboard.writeText(gid("roomCode").textContent); setCallStatus("코드를 복사했어요!"); } catch (_) {} };
+gid("hangBtn").onclick = () => endCall(true);
+gid("callBtn").onclick = () => (callActive ? stopCall() : startCall());
+
+async function hostRoom() {
+  if (autoMode) autoStop();
+  setCallStatus("연결 준비 중…");
+  try { await loadPeerJS(); } catch (e) { setCallStatus("⚠️ 통화 기능을 못 불러왔어요 (인터넷 확인)"); return; }
+  const code = randomCode();
+  peer = new Peer("sgpro-" + code, PEER_OPTS);
+  peer.on("open", () => {
+    gid("roomCode").textContent = code;
+    gid("hostArea").style.display = "block"; gid("joinArea").style.display = "none";
+    setCallStatus("상대가 참여하길 기다리는 중…");
+  });
+  peer.on("connection", (c) => { conn = c; setupConn(); });
+  peer.on("error", onPeerError);
+}
+async function joinRoom(code) {
+  if (autoMode) autoStop();
+  setCallStatus("연결 중…");
+  try { await loadPeerJS(); } catch (e) { setCallStatus("⚠️ 통화 기능을 못 불러왔어요 (인터넷 확인)"); return; }
+  peer = new Peer(PEER_OPTS);
+  peer.on("open", () => { conn = peer.connect("sgpro-" + code, { reliable: true }); setupConn(); });
+  peer.on("error", onPeerError);
+}
+function onPeerError(e) {
+  const t = (e && e.type) || "";
+  if (t === "peer-unavailable") setCallStatus("⚠️ 그 코드의 방이 없어요. 코드를 다시 확인하세요.");
+  else if (t === "unavailable-id") setCallStatus("코드가 겹쳤어요 — '방 만들기'를 한 번 더 눌러주세요.");
+  else setCallStatus("⚠️ 연결 문제: " + t + " — 네트워크를 확인하세요.");
+}
+function setupConn() {
+  conn.on("open", () => {
+    conn.send({ type: "hello", lang: myLangEl.value });
+    gid("callSetup").style.display = "none"; gid("callLive").style.display = "block";
+    setCallStatus("");
+  });
+  conn.on("data", onCallData);
+  conn.on("close", () => { setCallStatus("상대가 연결을 끊었어요."); endCall(false); });
+}
+async function onCallData(msg) {
+  if (!msg) return;
+  if (msg.type === "hello") {
+    peerLang = msg.lang;
+    gid("peerLangLabel").textContent = L[peerLang] ? (L[peerLang].flag + " " + L[peerLang].name) : msg.lang;
+    return;
+  }
+  if (msg.type === "speech") {
+    speaking = true;
+    try { currentRec && currentRec.stop(); } catch (_) {}
+    addBubble("them", msg.from, msg.orig, msg.tr, myLangEl.value);
+    await speakThen(msg.tr, myLangEl.value);   // 이미 내 언어로 번역돼서 옴
+    speaking = false;
+  }
+}
+async function callLoop() {
+  while (callActive) {
+    if (speaking) { await sleep(150); continue; }         // 상대 말 재생 중엔 안 들음
+    const text = await recognizeUntilSilence(myLangEl.value);
+    if (!callActive) break;
+    if (speaking || !text) { await sleep(80); continue; }
+    let tr = text;
+    try { if (peerLang) tr = await translate(text, myLangEl.value, peerLang); } catch (_) {}
+    if (conn && conn.open) conn.send({ type: "speech", orig: text, tr: tr, from: myLangEl.value });
+    addBubble("me", myLangEl.value, text, tr, peerLang || myLangEl.value);
+  }
+}
+async function startCall() {
+  if (!conn || !conn.open) { setCallStatus("아직 연결되지 않았어요."); return; }
+  const ok = await ensureMic();
+  if (!ok) { setStatus("🎤 마이크 권한을 허용해 주세요."); return; }
+  callActive = true;
+  gid("callBtn").textContent = "⏹ 통화 정지"; gid("callBtn").classList.add("on");
+  if (autoBtn) autoBtn.disabled = true;
+  callLoop();
+}
+function stopCall() {
+  callActive = false;
+  gid("callBtn").textContent = "📞 통역 통화 시작"; gid("callBtn").classList.remove("on");
+  try { currentRec && currentRec.stop(); } catch (_) {}
+  try { speechSynthesis.cancel(); } catch (_) {}
+  if (autoBtn) autoBtn.disabled = !SR;
+}
+function endCall(sendClose) {
+  stopCall();
+  try { if (sendClose && conn) conn.close(); } catch (_) {}
+  try { if (peer) peer.destroy(); } catch (_) {}
+  peer = null; conn = null; peerLang = null;
+  gid("callLive").style.display = "none"; gid("callSetup").style.display = "block";
+  gid("hostArea").style.display = "none"; gid("joinArea").style.display = "none";
+}
 
 /* =========================================================
    PWA: 폰에 설치(저장) 지원
