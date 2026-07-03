@@ -314,16 +314,46 @@ function getVoiceFor(langCode) {
   return list[0];
 }
 
-function speak(text, langCode) {
-  try {
-    speechSynthesis.cancel();
+let ttsTimer = null;
+// 견고한 읽어주기: 엔진 깨우기(resume) + 선택 목소리가 무음이면 기본 목소리로 재시도
+function speakRobust(text, langCode, onDone) {
+  const synth = ("speechSynthesis" in window) ? window.speechSynthesis : null;
+  if (!synth || !text) { if (onDone) onDone(); return; }
+  let finished = false;
+  const done = () => { if (finished) return; finished = true; clearInterval(ttsTimer); if (onDone) onDone(); };
+
+  try { synth.resume(); } catch (_) {}   // 멈춰 있으면 깨우기 (크롬 버그 대응)
+  try { synth.cancel(); } catch (_) {}   // 이전 발화 정리
+
+  const start = (useChosen) => {
+    let started = false;
     const u = new SpeechSynthesisUtterance(text);
     u.lang = L[langCode].tts;
-    const v = getVoiceFor(langCode); if (v) u.voice = v;
+    if (useChosen) { const v = getVoiceFor(langCode); if (v) u.voice = v; }
     u.rate = 0.95;
-    speechSynthesis.speak(u);
-  } catch (e) {}
+    u.onstart = () => { started = true; };
+    u.onend = () => done();
+    u.onerror = () => {
+      // 선택한 목소리로 실패하면 기본 목소리로 한 번 더 시도
+      if (useChosen && !started) { try { synth.cancel(); } catch (_) {} setTimeout(() => start(false), 80); }
+      else done();
+    };
+    try { synth.speak(u); } catch (_) { done(); return; }
+
+    clearInterval(ttsTimer);
+    ttsTimer = setInterval(() => { try { synth.resume(); } catch (_) {} }, 5000); // 긴 문장 중간에 멈추는 것 방지
+
+    // 1.8초 안에 소리가 안 나오면(무음) 기본 목소리로 한 번 더
+    setTimeout(() => {
+      if (!started && !finished && useChosen) { try { synth.cancel(); } catch (_) {} start(false); }
+    }, 1800);
+    // 최종 안전장치
+    setTimeout(done, Math.min(20000, 2800 + text.length * 90));
+  };
+
+  setTimeout(() => start(true), 70); // cancel 직후 살짝 대기 → 모바일 발화 유실 방지
 }
+function speak(text, langCode) { speakRobust(text, langCode); }
 
 /* ----- 목소리 설정 패널 ----- */
 const voicePanel = document.getElementById("voicePanel");
@@ -468,19 +498,7 @@ function recognizeUntilSilence(lang) {
 
 // 번역문을 소리 내어 읽고, 다 읽으면 resolve (자동 루프용)
 function speakThen(text, lang) {
-  return new Promise((resolve) => {
-    try {
-      speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(text);
-      u.lang = L[lang].tts;
-      const v = getVoiceFor(lang); if (v) u.voice = v;
-      u.rate = 0.95;
-      let done = false; const finish = () => { if (!done) { done = true; resolve(); } };
-      u.onend = finish; u.onerror = finish;
-      setTimeout(finish, Math.min(15000, 1500 + text.length * 90)); // onend 안 오는 기기 대비 안전장치
-      speechSynthesis.speak(u);
-    } catch (_) { resolve(); }
-  });
+  return new Promise((resolve) => speakRobust(text, lang, resolve));
 }
 
 async function autoLoop() {
@@ -538,6 +556,8 @@ function autoStop() {
   autoBtn.textContent = "🎧 자동 통역 시작 (핸즈프리)";
   autoBtn.classList.remove("on");
   try { currentRec && currentRec.stop(); } catch (_) {}
+  try { speechSynthesis.cancel(); } catch (_) {}
+  clearInterval(ttsTimer);
   micMe.classList.remove("listening"); micThem.classList.remove("listening");
   setStatus("정지됨 · 버튼을 누르면 다시 시작해요");
 }
