@@ -96,6 +96,22 @@
   .auto.on { background: #ef4444; animation: pulse .9s infinite; }
   .auto:disabled { opacity: .5; }
 
+  /* ===== 목소리 설정 ===== */
+  .voicebar { padding: 0 14px 10px; }
+  .voicetoggle { width: 100%; font-family: inherit; font-size: 13px; font-weight: 700; color: #4f46e5; background: #fff; border: none; border-radius: 12px; padding: 9px; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,.12); }
+  .voicepanel { display: none; background: #fff; border-radius: 14px; margin-top: 8px; padding: 6px 12px; box-shadow: 0 4px 10px rgba(0,0,0,.15); max-height: 42vh; overflow-y: auto; }
+  .voicepanel.open { display: block; }
+  .vrow { padding: 9px 0; border-bottom: 1px solid #eef2f7; }
+  .vrow:last-child { border-bottom: none; }
+  .vtitle { font-size: 13px; font-weight: 800; color: #334155; margin-bottom: 7px; }
+  .vctrl { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .vgender { display: flex; gap: 6px; }
+  .vgender button { font-family: inherit; font-size: 13px; font-weight: 700; border: 2px solid #e2e8f0; background: #fff; color: #475569; border-radius: 999px; padding: 6px 10px; cursor: pointer; }
+  .vgender button.sel { border-color: #4f46e5; background: #eef2ff; color: #4f46e5; }
+  .vsel { flex: 1 1 130px; min-width: 110px; font-family: inherit; font-size: 13px; font-weight: 600; border: 2px solid #e2e8f0; border-radius: 10px; padding: 8px; background: #fff; color: #334155; }
+  .vplay { font-family: inherit; font-size: 13px; font-weight: 700; border: none; background: #0ea5e9; color: #fff; border-radius: 10px; padding: 8px 12px; cursor: pointer; }
+  .vnone { font-size: 12px; color: #94a3b8; line-height: 1.5; }
+
   /* ===== 설치 안내 배너 ===== */
   .install { display: none; background: #fef9c3; color: #713f12; font-size: 13px; padding: 8px 12px; text-align: center; }
   .install button { font-family: inherit; margin-left: 8px; border: none; background: #f59e0b; color: #fff; font-weight: 700; padding: 5px 12px; border-radius: 999px; cursor: pointer; }
@@ -117,6 +133,11 @@
       <label>🗣️ 상대 언어</label>
       <select id="theirLang"></select>
     </div>
+  </div>
+
+  <div class="voicebar">
+    <button class="voicetoggle" id="voiceToggle">🔊 목소리 설정 (남 / 여 · 여러 목소리) ▾</button>
+    <div class="voicepanel" id="voicePanel"></div>
   </div>
 
   <div class="install" id="install">
@@ -158,38 +179,38 @@
    stt: 음성인식 코드 / tts: 읽어주기 코드 / mm: 무료 번역 API 코드
 ========================================================= */
 const LANGS = [
-  { code:"ko",    name:"한국어",      flag:"🇰🇷", stt:"ko-KR", tts:"ko-KR", mm:"ko"    },
-  { code:"en",    name:"English",     flag:"🇺🇸", stt:"en-US", tts:"en-US", mm:"en"    },
-  { code:"ja",    name:"日本語",      flag:"🇯🇵", stt:"ja-JP", tts:"ja-JP", mm:"ja"    },
-  { code:"zh",    name:"中文(简体)",  flag:"🇨🇳", stt:"zh-CN", tts:"zh-CN", mm:"zh-CN" },
-  { code:"zh-TW", name:"中文(繁體)",  flag:"🇹🇼", stt:"zh-TW", tts:"zh-TW", mm:"zh-TW" },
-  { code:"fr",    name:"Français",    flag:"🇫🇷", stt:"fr-FR", tts:"fr-FR", mm:"fr"    },
-  { code:"de",    name:"Deutsch",     flag:"🇩🇪", stt:"de-DE", tts:"de-DE", mm:"de"    },
-  { code:"es",    name:"Español",     flag:"🇪🇸", stt:"es-ES", tts:"es-ES", mm:"es"    },
-  { code:"it",    name:"Italiano",    flag:"🇮🇹", stt:"it-IT", tts:"it-IT", mm:"it"    },
-  { code:"pt",    name:"Português",   flag:"🇧🇷", stt:"pt-BR", tts:"pt-BR", mm:"pt-BR" },
-  { code:"ru",    name:"Русский",     flag:"🇷🇺", stt:"ru-RU", tts:"ru-RU", mm:"ru"    },
-  { code:"ar",    name:"العربية",     flag:"🇸🇦", stt:"ar-SA", tts:"ar-SA", mm:"ar"    },
-  { code:"hi",    name:"हिन्दी",       flag:"🇮🇳", stt:"hi-IN", tts:"hi-IN", mm:"hi"    },
-  { code:"th",    name:"ไทย",         flag:"🇹🇭", stt:"th-TH", tts:"th-TH", mm:"th"    },
-  { code:"vi",    name:"Tiếng Việt",  flag:"🇻🇳", stt:"vi-VN", tts:"vi-VN", mm:"vi"    },
-  { code:"id",    name:"Indonesia",   flag:"🇮🇩", stt:"id-ID", tts:"id-ID", mm:"id"    },
-  { code:"nl",    name:"Nederlands",  flag:"🇳🇱", stt:"nl-NL", tts:"nl-NL", mm:"nl"    },
-  { code:"tr",    name:"Türkçe",      flag:"🇹🇷", stt:"tr-TR", tts:"tr-TR", mm:"tr"    },
-  { code:"pl",    name:"Polski",      flag:"🇵🇱", stt:"pl-PL", tts:"pl-PL", mm:"pl"    },
-  { code:"sv",    name:"Svenska",     flag:"🇸🇪", stt:"sv-SE", tts:"sv-SE", mm:"sv"    },
-  { code:"uk",    name:"Українська",  flag:"🇺🇦", stt:"uk-UA", tts:"uk-UA", mm:"uk"    },
-  { code:"el",    name:"Ελληνικά",    flag:"🇬🇷", stt:"el-GR", tts:"el-GR", mm:"el"    },
-  { code:"cs",    name:"Čeština",     flag:"🇨🇿", stt:"cs-CZ", tts:"cs-CZ", mm:"cs"    },
-  { code:"ro",    name:"Română",      flag:"🇷🇴", stt:"ro-RO", tts:"ro-RO", mm:"ro"    },
-  { code:"hu",    name:"Magyar",      flag:"🇭🇺", stt:"hu-HU", tts:"hu-HU", mm:"hu"    },
-  { code:"fi",    name:"Suomi",       flag:"🇫🇮", stt:"fi-FI", tts:"fi-FI", mm:"fi"    },
-  { code:"da",    name:"Dansk",       flag:"🇩🇰", stt:"da-DK", tts:"da-DK", mm:"da"    },
-  { code:"no",    name:"Norsk",       flag:"🇳🇴", stt:"nb-NO", tts:"nb-NO", mm:"no"    },
-  { code:"he",    name:"עברית",       flag:"🇮🇱", stt:"he-IL", tts:"he-IL", mm:"he"    },
-  { code:"fa",    name:"فارسی",       flag:"🇮🇷", stt:"fa-IR", tts:"fa-IR", mm:"fa"    },
-  { code:"ms",    name:"Melayu",      flag:"🇲🇾", stt:"ms-MY", tts:"ms-MY", mm:"ms"    },
-  { code:"fil",   name:"Filipino",    flag:"🇵🇭", stt:"fil-PH", tts:"fil-PH", mm:"tl"  },
+  { code:"ko",    name:"한국어",      flag:"🇰🇷", stt:"ko-KR", tts:"ko-KR", mm:"ko",    hello:"안녕하세요, 반갑습니다" },
+  { code:"en",    name:"English",     flag:"🇺🇸", stt:"en-US", tts:"en-US", mm:"en",    hello:"Hello, nice to meet you" },
+  { code:"ja",    name:"日本語",      flag:"🇯🇵", stt:"ja-JP", tts:"ja-JP", mm:"ja",    hello:"こんにちは、はじめまして" },
+  { code:"zh",    name:"中文(简体)",  flag:"🇨🇳", stt:"zh-CN", tts:"zh-CN", mm:"zh-CN", hello:"你好，很高兴认识你" },
+  { code:"zh-TW", name:"中文(繁體)",  flag:"🇹🇼", stt:"zh-TW", tts:"zh-TW", mm:"zh-TW", hello:"你好，很高興認識你" },
+  { code:"fr",    name:"Français",    flag:"🇫🇷", stt:"fr-FR", tts:"fr-FR", mm:"fr",    hello:"Bonjour, enchanté" },
+  { code:"de",    name:"Deutsch",     flag:"🇩🇪", stt:"de-DE", tts:"de-DE", mm:"de",    hello:"Hallo, freut mich" },
+  { code:"es",    name:"Español",     flag:"🇪🇸", stt:"es-ES", tts:"es-ES", mm:"es",    hello:"Hola, encantado" },
+  { code:"it",    name:"Italiano",    flag:"🇮🇹", stt:"it-IT", tts:"it-IT", mm:"it",    hello:"Ciao, piacere" },
+  { code:"pt",    name:"Português",   flag:"🇧🇷", stt:"pt-BR", tts:"pt-BR", mm:"pt-BR", hello:"Olá, prazer" },
+  { code:"ru",    name:"Русский",     flag:"🇷🇺", stt:"ru-RU", tts:"ru-RU", mm:"ru",    hello:"Здравствуйте" },
+  { code:"ar",    name:"العربية",     flag:"🇸🇦", stt:"ar-SA", tts:"ar-SA", mm:"ar",    hello:"مرحبا، تشرفنا" },
+  { code:"hi",    name:"हिन्दी",       flag:"🇮🇳", stt:"hi-IN", tts:"hi-IN", mm:"hi",    hello:"नमस्ते" },
+  { code:"th",    name:"ไทย",         flag:"🇹🇭", stt:"th-TH", tts:"th-TH", mm:"th",    hello:"สวัสดีครับ" },
+  { code:"vi",    name:"Tiếng Việt",  flag:"🇻🇳", stt:"vi-VN", tts:"vi-VN", mm:"vi",    hello:"Xin chào" },
+  { code:"id",    name:"Indonesia",   flag:"🇮🇩", stt:"id-ID", tts:"id-ID", mm:"id",    hello:"Halo, apa kabar" },
+  { code:"nl",    name:"Nederlands",  flag:"🇳🇱", stt:"nl-NL", tts:"nl-NL", mm:"nl",    hello:"Hallo, aangenaam" },
+  { code:"tr",    name:"Türkçe",      flag:"🇹🇷", stt:"tr-TR", tts:"tr-TR", mm:"tr",    hello:"Merhaba" },
+  { code:"pl",    name:"Polski",      flag:"🇵🇱", stt:"pl-PL", tts:"pl-PL", mm:"pl",    hello:"Cześć" },
+  { code:"sv",    name:"Svenska",     flag:"🇸🇪", stt:"sv-SE", tts:"sv-SE", mm:"sv",    hello:"Hej" },
+  { code:"uk",    name:"Українська",  flag:"🇺🇦", stt:"uk-UA", tts:"uk-UA", mm:"uk",    hello:"Привіт" },
+  { code:"el",    name:"Ελληνικά",    flag:"🇬🇷", stt:"el-GR", tts:"el-GR", mm:"el",    hello:"Γεια σας" },
+  { code:"cs",    name:"Čeština",     flag:"🇨🇿", stt:"cs-CZ", tts:"cs-CZ", mm:"cs",    hello:"Ahoj" },
+  { code:"ro",    name:"Română",      flag:"🇷🇴", stt:"ro-RO", tts:"ro-RO", mm:"ro",    hello:"Bună ziua" },
+  { code:"hu",    name:"Magyar",      flag:"🇭🇺", stt:"hu-HU", tts:"hu-HU", mm:"hu",    hello:"Szia" },
+  { code:"fi",    name:"Suomi",       flag:"🇫🇮", stt:"fi-FI", tts:"fi-FI", mm:"fi",    hello:"Hei" },
+  { code:"da",    name:"Dansk",       flag:"🇩🇰", stt:"da-DK", tts:"da-DK", mm:"da",    hello:"Hej" },
+  { code:"no",    name:"Norsk",       flag:"🇳🇴", stt:"nb-NO", tts:"nb-NO", mm:"no",    hello:"Hei" },
+  { code:"he",    name:"עברית",       flag:"🇮🇱", stt:"he-IL", tts:"he-IL", mm:"he",    hello:"שלום" },
+  { code:"fa",    name:"فارسی",       flag:"🇮🇷", stt:"fa-IR", tts:"fa-IR", mm:"fa",    hello:"سلام" },
+  { code:"ms",    name:"Melayu",      flag:"🇲🇾", stt:"ms-MY", tts:"ms-MY", mm:"ms",    hello:"Halo, apa khabar" },
+  { code:"fil",   name:"Filipino",    flag:"🇵🇭", stt:"fil-PH", tts:"fil-PH", mm:"tl",   hello:"Kumusta" },
 ];
 const L = Object.fromEntries(LANGS.map(l => [l.code, l]));
 
@@ -209,10 +230,10 @@ function refreshLabels() {
   meLabel.textContent = L[myLangEl.value].flag + " " + L[myLangEl.value].name;
   themLabel.textContent = L[theirLangEl.value].flag + " " + L[theirLangEl.value].name;
 }
-myLangEl.onchange = theirLangEl.onchange = refreshLabels;
+myLangEl.onchange = theirLangEl.onchange = () => { refreshLabels(); buildVoicePanel(); };
 document.getElementById("swap").onclick = () => {
   const a = myLangEl.value; myLangEl.value = theirLangEl.value; theirLangEl.value = a;
-  refreshLabels();
+  refreshLabels(); buildVoicePanel();
 };
 refreshLabels();
 
@@ -257,23 +278,120 @@ async function translate(text, from, to) {
 }
 
 /* =========================================================
-   읽어주기 (TTS)
+   읽어주기 (TTS) + 목소리 선택 (남/여 · 여러 목소리)
 ========================================================= */
+let voicePref = {}, genderPref = {};   // {langCode: voiceURI}, {langCode: 'M'|'F'}
+try {
+  voicePref  = JSON.parse(localStorage.getItem("voicePref")  || "{}");
+  genderPref = JSON.parse(localStorage.getItem("genderPref") || "{}");
+} catch (_) {}
+function save() {
+  try { localStorage.setItem("voicePref", JSON.stringify(voicePref)); localStorage.setItem("genderPref", JSON.stringify(genderPref)); } catch (_) {}
+}
+
+function allVoices() { return ("speechSynthesis" in window) ? speechSynthesis.getVoices() : []; }
+function voicesFor(langCode) {
+  const base = L[langCode].tts.toLowerCase();
+  const prefix = base.split("-")[0];
+  return allVoices().filter(v => v.lang && (v.lang.toLowerCase() === base || v.lang.toLowerCase().startsWith(prefix)));
+}
+// 목소리 이름으로 성별 추정 (기기에 성별 정보가 있을 때만)
+function guessGender(v) {
+  const n = ((v.name || "") + " " + (v.voiceURI || "")).toLowerCase();
+  if (/female|woman|여성|여자|femme|mujer|weiblich|feminine/.test(n)) return "F";
+  if (/\bmale\b|\bman\b|남성|남자|homme|hombre|männlich|masculine/.test(n)) return "M";
+  if (/samantha|victoria|karen|moira|tessa|fiona|serena|zira|heami|yuna|sora|nova|amelie|amélie|anna|paulina|alice|ellen|milena|luciana|ioana|laura|zosia|nicky|allison|\bava\b|susan|kyoko|female/.test(n)) return "F";
+  if (/daniel|\balex\b|fred|thomas|rishi|david|\bmark\b|george|xander|diego|jorge|yannick|luca|maged|\bguy\b|aaron|male/.test(n)) return "M";
+  return "";
+}
+function getVoiceFor(langCode) {
+  const list = voicesFor(langCode);
+  if (!list.length) return null;
+  const uri = voicePref[langCode];
+  if (uri) { const hit = list.find(v => v.voiceURI === uri); if (hit) return hit; }
+  const g = genderPref[langCode];
+  if (g) { const gh = list.find(v => guessGender(v) === g); if (gh) return gh; }
+  return list[0];
+}
+
 function speak(text, langCode) {
   try {
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
     u.lang = L[langCode].tts;
-    const base = L[langCode].tts.toLowerCase();
-    const voices = speechSynthesis.getVoices();
-    const v = voices.find(v => v.lang && v.lang.toLowerCase() === base)
-           || voices.find(v => v.lang && v.lang.toLowerCase().startsWith(L[langCode].mm.split("-")[0]));
-    if (v) u.voice = v;
+    const v = getVoiceFor(langCode); if (v) u.voice = v;
     u.rate = 0.95;
     speechSynthesis.speak(u);
   } catch (e) {}
 }
-if ("speechSynthesis" in window) speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
+
+/* ----- 목소리 설정 패널 ----- */
+const voicePanel = document.getElementById("voicePanel");
+const voiceToggle = document.getElementById("voiceToggle");
+voiceToggle.onclick = () => { voicePanel.classList.toggle("open"); buildVoicePanel(); };
+function previewVoice(code) { speak(L[code].hello || "Hello", code); }
+
+function buildVoicePanel() {
+  if (!voicePanel || !voicePanel.classList.contains("open")) return;
+  const langs = [...new Set([myLangEl.value, theirLangEl.value])];
+  voicePanel.innerHTML = "";
+  langs.forEach(code => {
+    const list = voicesFor(code);
+    const row = document.createElement("div");
+    row.className = "vrow";
+    const title = document.createElement("div");
+    title.className = "vtitle";
+    title.textContent = `${L[code].flag} ${L[code].name} 목소리`;
+    row.appendChild(title);
+
+    if (!list.length) {
+      const none = document.createElement("div");
+      none.className = "vnone";
+      none.textContent = `이 기기에 ${L[code].name} 목소리가 없어요. (폰 설정 → 언어/음성/TTS에서 추가 가능)`;
+      row.appendChild(none); voicePanel.appendChild(row); return;
+    }
+
+    // 목소리 드롭다운
+    const sel = document.createElement("select");
+    sel.className = "vsel";
+    list.forEach(v => {
+      const g = guessGender(v);
+      const tag = g === "F" ? "🚺 " : g === "M" ? "🚹 " : "🔊 ";
+      sel.appendChild(new Option(tag + v.name, v.voiceURI));
+    });
+    const cur = getVoiceFor(code); if (cur) sel.value = cur.voiceURI;
+    sel.onchange = () => { voicePref[code] = sel.value; delete genderPref[code]; save(); previewVoice(code); };
+
+    // 남/여 버튼
+    const gender = document.createElement("div");
+    gender.className = "vgender";
+    [["F", "🚺 여자"], ["M", "🚹 남자"]].forEach(([g, label]) => {
+      const b = document.createElement("button");
+      b.textContent = label;
+      if (genderPref[code] === g) b.classList.add("sel");
+      b.onclick = () => {
+        const match = list.find(v => guessGender(v) === g);
+        if (match) { genderPref[code] = g; voicePref[code] = match.voiceURI; save(); buildVoicePanel(); previewVoice(code); }
+        else { setStatus(`이 기기의 ${L[code].name}엔 ${g === "F" ? "여자" : "남자"} 목소리 정보가 없어요. 목록에서 직접 골라 미리듣기 해보세요.`); }
+      };
+      gender.appendChild(b);
+    });
+
+    // 미리듣기
+    const play = document.createElement("button");
+    play.className = "vplay"; play.textContent = "▶️ 미리듣기";
+    play.onclick = () => { voicePref[code] = sel.value; save(); previewVoice(code); };
+
+    const ctrl = document.createElement("div"); ctrl.className = "vctrl";
+    ctrl.appendChild(gender); ctrl.appendChild(sel); ctrl.appendChild(play);
+    row.appendChild(ctrl);
+    voicePanel.appendChild(row);
+  });
+}
+
+if ("speechSynthesis" in window) {
+  speechSynthesis.onvoiceschanged = () => { speechSynthesis.getVoices(); buildVoicePanel(); };
+}
 
 /* =========================================================
    음성 인식 (STT)
@@ -284,58 +402,25 @@ if (!SR) {
   setStatus("⚠️ 이 브라우저는 음성 인식을 지원하지 않아요 (안드로이드 크롬 권장)");
 }
 
-function listen(fromLang, toLang, side, micBtn) {
+async function listen(fromLang, toLang, side, micBtn) {
   if (!SR) { setStatus("⚠️ 안드로이드 크롬에서 음성 인식이 가장 잘 돼요."); return; }
-  if (recognizing) { currentRec && currentRec.stop(); return; }
-
-  const rec = new SR();
-  currentRec = rec;
-  rec.lang = L[fromLang].stt;
-  rec.interimResults = true;
-  rec.continuous = false;
-  rec.maxAlternatives = 1;
-  let finalText = "";
-
-  rec.onstart = () => {
-    recognizing = true;
-    micBtn.classList.add("listening");
-    setStatus(`🎤 ${L[fromLang].name} 듣는 중…`);
-    speechSynthesis.cancel();
-  };
-  rec.onresult = (e) => {
-    let interim = "";
-    for (let i = e.resultIndex; i < e.results.length; i++) {
-      const t = e.results[i][0].transcript;
-      if (e.results[i].isFinal) finalText += t; else interim += t;
-    }
-    if (interim) setStatus("… " + interim);
-  };
-  rec.onerror = (e) => {
-    if (e.error === "no-speech") setStatus("🔇 말소리가 안 들렸어요. 다시 눌러보세요.");
-    else if (e.error === "not-allowed") setStatus("🎤 마이크 권한을 허용해 주세요.");
-    else if (e.error === "language-not-supported") setStatus("⚠️ 이 언어는 이 기기에서 음성 인식이 안 돼요.");
-    else setStatus("오류: " + e.error);
-  };
-  rec.onend = async () => {
-    recognizing = false;
-    micBtn.classList.remove("listening");
-    const text = finalText.trim();
-    if (!text) return;
-    setStatus("🌐 번역 중…");
-    try {
-      const translated = await translate(text, fromLang, toLang);
-      addBubble(side, fromLang, text, translated, toLang);
-      speak(translated, toLang);
-      setStatus(`✅ ${L[toLang].name}로 전달했어요`);
-    } catch (err) {
-      const msg = /USED ALL AVAILABLE/i.test(err.message)
-        ? "⚠️ 오늘 무료 번역 사용량을 다 썼어요. 내일 다시 되거나, 자체 번역서버로 바꿀 수 있어요."
-        : "⚠️ 번역 실패 — 인터넷 연결을 확인하세요.";
-      setStatus(msg);
-    }
-  };
-
-  try { rec.start(); } catch (e) {}
+  if (recognizing) { try { currentRec && currentRec.stop(); } catch (_) {} return; } // 다시 누르면 바로 끝내기
+  speechSynthesis.cancel();
+  micBtn.classList.add("listening");
+  const text = await recognizeUntilSilence(fromLang);   // 멈추면 3초 뒤 종료
+  micBtn.classList.remove("listening");
+  if (!text) { setStatus("🔇 말소리가 안 들렸어요. 다시 눌러보세요."); return; }
+  setStatus(`🌐 ${L[toLang].name}로 번역 중…`);
+  try {
+    const translated = await translate(text, fromLang, toLang);
+    addBubble(side, fromLang, text, translated, toLang);
+    speak(translated, toLang);
+    setStatus(`✅ ${L[toLang].name}로 전달했어요`);
+  } catch (err) {
+    setStatus(/USED ALL AVAILABLE/i.test(err.message)
+      ? "⚠️ 오늘 무료 번역 사용량을 다 썼어요. 내일 다시 되거나, 자체 번역서버로 바꿀 수 있어요."
+      : "⚠️ 번역 실패 — 인터넷 연결을 확인하세요.");
+  }
 }
 
 /* =========================================================
@@ -353,27 +438,30 @@ function highlightTurn(lang) {
   micThem.classList.toggle("listening", !mine);
 }
 
-// 한 번 듣고 최종 텍스트를 반환 (자동 루프용)
-function recognizeOnce(lang) {
+// 침묵 감지: 말하는 동안 계속 듣고, 멈춘 뒤 SILENCE_MS 지나면 종료 → 그때 번역
+const SILENCE_MS = 3000; // 말을 멈추고 이만큼(3초) 지나면 번역 시작
+function recognizeUntilSilence(lang) {
   return new Promise((resolve) => {
     if (!SR) { resolve(null); return; }
     const rec = new SR(); currentRec = rec;
-    rec.lang = L[lang].stt; rec.interimResults = true; rec.continuous = false; rec.maxAlternatives = 1;
-    let finalText = "";
-    rec.onstart = () => { recognizing = true; setStatus(`🎙️ ${L[lang].flag} ${L[lang].name} 말하세요…`); };
+    rec.lang = L[lang].stt; rec.interimResults = true; rec.continuous = true; rec.maxAlternatives = 1;
+    let finalText = "", silenceTimer = null;
+    const arm = () => { clearTimeout(silenceTimer); silenceTimer = setTimeout(() => { try { rec.stop(); } catch (_) {} }, SILENCE_MS); };
+    rec.onstart = () => { recognizing = true; setStatus(`🎙️ ${L[lang].flag} ${L[lang].name} 말하세요… (멈추면 ${SILENCE_MS / 1000}초 뒤 번역)`); };
     rec.onresult = (e) => {
       let interim = "";
       for (let i = e.resultIndex; i < e.results.length; i++) {
         const t = e.results[i][0].transcript;
-        if (e.results[i].isFinal) finalText += t; else interim += t;
+        if (e.results[i].isFinal) finalText += t + " "; else interim += t;
       }
-      if (interim) setStatus("… " + interim);
+      setStatus("📝 " + (finalText + interim).trim());
+      arm(); // 말할 때마다 타이머 리셋 → 계속 말하면 계속 들음
     };
     rec.onerror = (e) => {
       if (e.error === "not-allowed") { setStatus("🎤 마이크 권한을 허용해 주세요."); autoStop(); }
       else if (e.error === "language-not-supported") setStatus("⚠️ 이 언어는 이 기기에서 음성 인식이 안 돼요.");
     };
-    rec.onend = () => { recognizing = false; resolve(finalText.trim()); };
+    rec.onend = () => { clearTimeout(silenceTimer); recognizing = false; resolve(finalText.trim()); };
     try { rec.start(); } catch (_) { resolve(null); }
   });
 }
@@ -385,11 +473,7 @@ function speakThen(text, lang) {
       speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text);
       u.lang = L[lang].tts;
-      const base = L[lang].tts.toLowerCase();
-      const voices = speechSynthesis.getVoices();
-      const v = voices.find((vo) => vo.lang && vo.lang.toLowerCase() === base)
-             || voices.find((vo) => vo.lang && vo.lang.toLowerCase().startsWith(L[lang].mm.split("-")[0]));
-      if (v) u.voice = v;
+      const v = getVoiceFor(lang); if (v) u.voice = v;
       u.rate = 0.95;
       let done = false; const finish = () => { if (!done) { done = true; resolve(); } };
       u.onend = finish; u.onerror = finish;
@@ -404,7 +488,7 @@ async function autoLoop() {
     const from = turnLang;
     const to = (from === myLangEl.value) ? theirLangEl.value : myLangEl.value;
     highlightTurn(from);
-    const text = await recognizeOnce(from);
+    const text = await recognizeUntilSilence(from);
     if (!autoMode) break;
     if (!text) { await sleep(200); continue; }         // 말소리 없으면 계속 대기
     setStatus(`🌐 ${L[to].name}로 번역 중…`);
