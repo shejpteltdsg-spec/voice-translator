@@ -3,147 +3,181 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-<meta name="theme-color" content="#4f46e5" />
-<title>실시간 통역기 · Voice Translator</title>
+<meta name="theme-color" content="#6d5cf0" />
+<title>Lingo · 번역 메신저</title>
 
 <!-- 폰에 앱처럼 설치(저장)하기 위한 설정 -->
 <link rel="manifest" href="manifest.webmanifest" />
 <link rel="apple-touch-icon" href="icon-180.png" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-<meta name="apple-mobile-web-app-title" content="통역기" />
+<meta name="apple-mobile-web-app-title" content="Lingo" />
 <meta name="mobile-web-app-capable" content="yes" />
 
 <style>
+  :root{
+    --bg1:#eef1f8; --bg2:#f7f8fc;
+    --card:#ffffff; --ink:#0f172a; --muted:#6b7280; --faint:#9aa3b2;
+    --line:#e8ebf2;
+    --brand:#6d5cf0; --brand-soft:#eef0ff;
+    --green:#12b76a; --sky:#0ea5e9; --danger:#ef4444;
+    --r:18px; --r-sm:12px;
+    --sh:0 8px 24px rgba(24,20,60,.08); --sh-sm:0 2px 8px rgba(24,20,60,.06);
+    --grad:linear-gradient(135deg,#6366f1 0%,#8b5cf6 55%,#a855f7 100%);
+  }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { margin: 0; height: 100%; }
   body {
-    font-family: "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
-    background: linear-gradient(170deg, #4f46e5 0%, #7c3aed 100%);
-    color: #1e293b;
+    font-family: "Pretendard","Apple SD Gothic Neo","Malgun Gothic",-apple-system,system-ui,sans-serif;
+    background: linear-gradient(180deg,var(--bg1),var(--bg2));
+    color: var(--ink);
     display: flex; flex-direction: column;
     height: 100dvh; overflow: hidden;
     -webkit-user-select: none; user-select: none;
   }
 
-  header { color: #fff; padding: 12px 16px 8px; text-align: center; }
-  header h1 { margin: 0; font-size: 19px; font-weight: 800; letter-spacing: .3px; }
-  header p { margin: 2px 0 0; font-size: 11.5px; opacity: .85; }
+  /* ===== 브랜드 헤더 ===== */
+  header {
+    display: flex; align-items: center; gap: 11px;
+    padding: calc(12px + env(safe-area-inset-top)) 18px 13px;
+    background: var(--grad); color: #fff;
+    box-shadow: 0 6px 22px rgba(109,92,240,.32);
+  }
+  .logo {
+    width: 40px; height: 40px; border-radius: 13px; flex: 0 0 auto;
+    background: rgba(255,255,255,.2); display: grid; place-items: center; font-size: 21px;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.28);
+  }
+  .brandtext { display: flex; flex-direction: column; line-height: 1.18; }
+  .wordmark { font-size: 21px; font-weight: 800; letter-spacing: -.4px; }
+  .tagline { font-size: 11.5px; opacity: .92; font-weight: 500; }
 
-  /* ===== 언어 선택 (내 언어 / 상대 언어) ===== */
-  .pickers { display: flex; align-items: center; gap: 8px; padding: 8px 12px 12px; }
-  .picker { flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-  .picker label { font-size: 11px; color: #e0e7ff; font-weight: 700; padding-left: 4px; }
+  /* ===== 언어 선택 ===== */
+  .pickers { display: flex; align-items: flex-end; gap: 8px; padding: 13px 14px 6px; }
+  .picker { flex: 1; display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+  .picker label { font-size: 11px; color: var(--muted); font-weight: 700; padding-left: 4px; }
   select {
     font-family: inherit; font-size: 15px; font-weight: 700;
-    border: none; border-radius: 12px; padding: 10px 8px;
-    background: #fff; color: #4f46e5; width: 100%;
-    appearance: none; text-align: center; cursor: pointer;
+    border: 1px solid var(--line); border-radius: var(--r-sm); padding: 11px 10px;
+    background: var(--card); color: var(--brand); width: 100%;
+    appearance: none; text-align: center; cursor: pointer; box-shadow: var(--sh-sm);
   }
   .swap {
-    margin-top: 18px; flex: 0 0 auto;
-    width: 40px; height: 40px; border-radius: 50%;
-    border: none; background: rgba(255,255,255,.2); color: #fff;
-    font-size: 20px; cursor: pointer;
+    flex: 0 0 auto; width: 42px; height: 42px; border-radius: 50%;
+    border: 1px solid var(--line); background: var(--card); color: var(--brand);
+    font-size: 18px; cursor: pointer; box-shadow: var(--sh-sm);
   }
-  .swap:active { transform: scale(.9); }
+  .swap:active { transform: rotate(180deg) scale(.92); transition: transform .25s; }
 
   /* ===== 대화 로그 ===== */
   .log {
-    flex: 1; overflow-y: auto; padding: 14px;
-    background: #f1f5f9; border-radius: 22px 22px 0 0;
-    display: flex; flex-direction: column; gap: 12px;
+    flex: 1; overflow-y: auto; padding: 16px 14px;
+    display: flex; flex-direction: column; gap: 10px;
     -webkit-user-select: text; user-select: text;
   }
-  .empty { margin: auto; text-align: center; color: #94a3b8; font-size: 15px; line-height: 1.7; }
-  .empty .big { font-size: 40px; }
-  .bubble { max-width: 82%; padding: 10px 14px; border-radius: 18px; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
-  .bubble .who { font-size: 11px; font-weight: 700; opacity: .7; margin-bottom: 2px; }
-  .bubble .orig { font-size: 15px; opacity: .65; }
-  .bubble .trans { font-size: 21px; font-weight: 700; margin-top: 3px; }
-  .bubble .replay { font-size: 12px; opacity: .6; margin-top: 5px; cursor: pointer; display: inline-block; }
-  .me   { align-self: flex-end;   background: #4f46e5; color: #fff; border-bottom-right-radius: 4px; }
-  .them { align-self: flex-start; background: #fff;   color: #1e293b; border-bottom-left-radius: 4px; }
+  .empty { margin: auto; text-align: center; color: var(--faint); font-size: 15px; line-height: 1.7; }
+  .empty .big { font-size: 44px; margin-bottom: 6px; }
+  .bubble { max-width: 82%; padding: 11px 15px; border-radius: 20px; box-shadow: var(--sh-sm); animation: rise .18s ease; }
+  @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .bubble .who { font-size: 11px; font-weight: 700; opacity: .75; margin-bottom: 3px; }
+  .bubble .orig { font-size: 14px; opacity: .6; }
+  .bubble .trans { font-size: 20px; font-weight: 700; margin-top: 3px; line-height: 1.32; }
+  .bubble .replay { font-size: 12px; opacity: .65; margin-top: 6px; cursor: pointer; display: inline-block; }
+  .me   { align-self: flex-end;   background: var(--grad); color: #fff; border-bottom-right-radius: 6px; }
+  .them { align-self: flex-start; background: var(--card); color: var(--ink); border: 1px solid var(--line); border-bottom-left-radius: 6px; }
 
-  .status { text-align: center; font-size: 14px; color: #fff; padding: 6px; min-height: 26px; background: rgba(0,0,0,.12); }
+  .status { text-align: center; font-size: 13px; color: var(--muted); font-weight: 600; padding: 7px 12px; min-height: 30px; }
 
   /* ===== 마이크 버튼 ===== */
-  .mics { display: flex; gap: 10px; padding: 12px 14px calc(14px + env(safe-area-inset-bottom)); background: #f1f5f9; }
+  .mics { display: flex; gap: 10px; padding: 10px 14px calc(14px + env(safe-area-inset-bottom)); }
   .mic {
-    flex: 1; font-family: inherit; border: none; border-radius: 18px;
-    padding: 15px 6px; cursor: pointer; color: #fff;
+    flex: 1; font-family: inherit; border: none; border-radius: var(--r);
+    padding: 14px 6px; cursor: pointer; color: #fff;
     display: flex; flex-direction: column; align-items: center; gap: 3px;
-    box-shadow: 0 4px 0 rgba(0,0,0,.18); transition: transform .08s, box-shadow .08s;
+    transition: transform .1s, box-shadow .2s;
   }
-  .mic:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0,0,0,.18); }
-  .mic .icon { font-size: 26px; }
+  .mic:active { transform: translateY(1px) scale(.99); }
+  .mic .icon { font-size: 24px; }
   .mic .label { font-size: 15px; font-weight: 800; }
-  .mic .sub { font-size: 11px; opacity: .9; }
-  .mic.them { background: #0ea5e9; }
-  .mic.me   { background: #4f46e5; }
-  .mic.listening { animation: pulse .9s infinite; }
-  @keyframes pulse { 0%,100%{ box-shadow:0 4px 0 rgba(0,0,0,.18), 0 0 0 0 rgba(255,255,255,.55);} 50%{ box-shadow:0 4px 0 rgba(0,0,0,.18), 0 0 0 13px rgba(255,255,255,0);} }
-  .mic:disabled { opacity: .5; }
+  .mic .sub { font-size: 11px; opacity: .92; }
+  .mic.them { background: linear-gradient(135deg,#0ea5e9,#38bdf8); box-shadow: 0 6px 18px rgba(14,165,233,.35); }
+  .mic.me   { background: var(--grad); box-shadow: 0 6px 18px rgba(109,92,240,.35); }
+  .mic.listening { animation: ring 1.1s infinite; }
+  @keyframes ring { 0%,100%{ box-shadow: 0 6px 18px rgba(109,92,240,.35), 0 0 0 0 rgba(139,92,246,.5);} 50%{ box-shadow: 0 6px 18px rgba(109,92,240,.35), 0 0 0 13px rgba(139,92,246,0);} }
+  .mic:disabled { opacity: .45; }
 
   /* ===== 자동(핸즈프리) 통역 버튼 ===== */
-  .autowrap { background: #f1f5f9; padding: 12px 14px 0; }
+  .autowrap { padding: 10px 14px 0; }
   .auto {
-    width: 100%; font-family: inherit; font-size: 17px; font-weight: 800;
-    border: none; border-radius: 16px; padding: 15px; color: #fff;
-    background: #22c55e; box-shadow: 0 4px 0 rgba(0,0,0,.18); cursor: pointer;
+    width: 100%; font-family: inherit; font-size: 16px; font-weight: 800;
+    border: none; border-radius: var(--r); padding: 15px; color: #fff;
+    background: linear-gradient(135deg,#10b981,#22c55e); box-shadow: 0 6px 18px rgba(16,185,129,.35); cursor: pointer;
+    transition: transform .1s;
   }
-  .auto:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0,0,0,.18); }
-  .auto.on { background: #ef4444; animation: pulse .9s infinite; }
+  .auto:active { transform: translateY(1px); }
+  .auto.on { background: linear-gradient(135deg,#ef4444,#f87171); box-shadow: 0 6px 18px rgba(239,68,68,.4); animation: ring 1.1s infinite; }
   .auto:disabled { opacity: .5; }
 
-  /* ===== 목소리 설정 ===== */
-  .voicebar { padding: 0 14px 10px; }
-  .voicetoggle { width: 100%; font-family: inherit; font-size: 13px; font-weight: 700; color: #4f46e5; background: #fff; border: none; border-radius: 12px; padding: 9px; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,.12); }
-  .voicepanel { display: none; background: #fff; border-radius: 14px; margin-top: 8px; padding: 6px 12px; box-shadow: 0 4px 10px rgba(0,0,0,.15); max-height: 42vh; overflow-y: auto; }
+  /* ===== 접이식 카드 토글 (목소리/통화) ===== */
+  .voicebar, .callbar { padding: 0 14px 8px; }
+  .voicetoggle, .calltoggle {
+    width: 100%; font-family: inherit; font-size: 13px; font-weight: 700;
+    color: var(--ink); background: var(--card); border: 1px solid var(--line);
+    border-radius: var(--r-sm); padding: 11px 13px; cursor: pointer;
+    box-shadow: var(--sh-sm); text-align: left;
+  }
+  .voicetoggle { color: var(--brand); }
+  .calltoggle { color: var(--sky); }
+
+  /* ===== 목소리 설정 패널 ===== */
+  .voicepanel { display: none; background: var(--card); border: 1px solid var(--line); border-radius: var(--r-sm); margin-top: 8px; padding: 6px 14px; box-shadow: var(--sh); max-height: 42vh; overflow-y: auto; }
   .voicepanel.open { display: block; }
-  .vrow { padding: 9px 0; border-bottom: 1px solid #eef2f7; }
+  .vrow { padding: 10px 0; border-bottom: 1px solid var(--line); }
   .vrow:last-child { border-bottom: none; }
-  .vtitle { font-size: 13px; font-weight: 800; color: #334155; margin-bottom: 7px; }
+  .vtitle { font-size: 13px; font-weight: 800; color: var(--ink); margin-bottom: 8px; }
   .vctrl { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
   .vgender { display: flex; gap: 6px; }
-  .vgender button { font-family: inherit; font-size: 13px; font-weight: 700; border: 2px solid #e2e8f0; background: #fff; color: #475569; border-radius: 999px; padding: 6px 10px; cursor: pointer; }
-  .vgender button.sel { border-color: #4f46e5; background: #eef2ff; color: #4f46e5; }
-  .vsel { flex: 1 1 130px; min-width: 110px; font-family: inherit; font-size: 13px; font-weight: 600; border: 2px solid #e2e8f0; border-radius: 10px; padding: 8px; background: #fff; color: #334155; }
-  .vplay { font-family: inherit; font-size: 13px; font-weight: 700; border: none; background: #0ea5e9; color: #fff; border-radius: 10px; padding: 8px 12px; cursor: pointer; }
-  .vnone { font-size: 12px; color: #94a3b8; line-height: 1.5; }
+  .vgender button { font-family: inherit; font-size: 13px; font-weight: 700; border: 1.5px solid var(--line); background: var(--card); color: var(--muted); border-radius: 999px; padding: 7px 12px; cursor: pointer; }
+  .vgender button.sel { border-color: var(--brand); background: var(--brand-soft); color: var(--brand); }
+  .vsel { flex: 1 1 130px; min-width: 110px; font-family: inherit; font-size: 13px; font-weight: 600; border: 1.5px solid var(--line); border-radius: 10px; padding: 9px; background: var(--card); color: var(--ink); }
+  .vplay { font-family: inherit; font-size: 13px; font-weight: 700; border: none; background: var(--sky); color: #fff; border-radius: 10px; padding: 9px 13px; cursor: pointer; }
+  .vnone { font-size: 12px; color: var(--faint); line-height: 1.5; }
 
-  /* ===== 통역 통화 (앱 안 인터넷 통화) ===== */
-  .callbar { padding: 0 14px 10px; }
-  .calltoggle { width: 100%; font-family: inherit; font-size: 13px; font-weight: 700; color: #0ea5e9; background: #fff; border: none; border-radius: 12px; padding: 9px; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,.12); }
-  .callpanel { display: none; background: #fff; border-radius: 14px; margin-top: 8px; padding: 12px; box-shadow: 0 4px 10px rgba(0,0,0,.15); }
+  /* ===== 통역 통화 패널 ===== */
+  .callpanel { display: none; background: var(--card); border: 1px solid var(--line); border-radius: var(--r-sm); margin-top: 8px; padding: 14px; box-shadow: var(--sh); }
   .callpanel.open { display: block; }
   .callrow { display: flex; gap: 8px; }
-  .cbtn { flex: 1; font-family: inherit; font-size: 14px; font-weight: 800; border: none; border-radius: 12px; padding: 11px 8px; cursor: pointer; background: #0ea5e9; color: #fff; }
-  .cbtn.join { background: #6366f1; }
-  .cbtn.call { width: 100%; margin-top: 8px; background: #22c55e; font-size: 16px; }
-  .cbtn.call.on { background: #ef4444; }
-  .cbtn.hang { width: 100%; margin-top: 8px; background: #94a3b8; }
-  .ccode { font-size: 34px; font-weight: 900; letter-spacing: 6px; text-align: center; color: #0ea5e9; padding: 12px; background: #f0f9ff; border-radius: 12px; margin-top: 10px; }
-  .cinput { width: 100%; font-family: inherit; font-size: 22px; font-weight: 800; text-align: center; letter-spacing: 5px; text-transform: uppercase; border: 2px solid #e2e8f0; border-radius: 12px; padding: 10px; margin-top: 10px; }
-  .cnote { font-size: 12px; color: #64748b; text-align: center; margin-top: 8px; line-height: 1.5; }
+  .cbtn { flex: 1; font-family: inherit; font-size: 14px; font-weight: 800; border: none; border-radius: var(--r-sm); padding: 12px 8px; cursor: pointer; background: linear-gradient(135deg,#0ea5e9,#38bdf8); color: #fff; box-shadow: 0 4px 12px rgba(14,165,233,.28); transition: transform .1s; }
+  .cbtn:active { transform: translateY(1px); }
+  .cbtn.join { background: var(--grad); box-shadow: 0 4px 12px rgba(109,92,240,.28); }
+  .cbtn.call { width: 100%; margin-top: 8px; background: linear-gradient(135deg,#10b981,#22c55e); box-shadow: 0 4px 12px rgba(16,185,129,.3); font-size: 16px; }
+  .cbtn.call.on { background: linear-gradient(135deg,#ef4444,#f87171); box-shadow: 0 4px 12px rgba(239,68,68,.35); }
+  .cbtn.hang { width: 100%; margin-top: 8px; background: #94a3b8; box-shadow: none; }
+  .ccode { font-size: 36px; font-weight: 900; letter-spacing: 8px; text-align: center; color: var(--brand); padding: 16px; background: var(--brand-soft); border-radius: var(--r-sm); margin-top: 12px; }
+  .cinput { width: 100%; font-family: inherit; font-size: 24px; font-weight: 800; text-align: center; letter-spacing: 6px; text-transform: uppercase; border: 1.5px solid var(--line); border-radius: var(--r-sm); padding: 12px; margin-top: 10px; }
+  .cnote { font-size: 12px; color: var(--muted); text-align: center; margin-top: 10px; line-height: 1.55; }
   .clive { font-size: 15px; font-weight: 800; text-align: center; color: #0f766e; }
-  .ccopy { font-family: inherit; font-size: 12px; font-weight: 700; border: none; background: #e0f2fe; color: #0369a1; border-radius: 999px; padding: 6px 14px; margin: 8px auto 0; cursor: pointer; display: block; }
+  .ccopy { font-family: inherit; font-size: 12px; font-weight: 700; border: none; background: var(--brand-soft); color: var(--brand); border-radius: 999px; padding: 7px 16px; margin: 10px auto 0; cursor: pointer; display: block; }
 
-  /* ===== 채팅 입력줄 (연결되면 표시) ===== */
-  .chatbar { display: none; gap: 8px; padding: 10px 14px 0; background: #f1f5f9; }
+  /* ===== 채팅 입력줄 ===== */
+  .chatbar { display: none; gap: 8px; padding: 10px 14px 0; }
   .chatbar.show { display: flex; }
-  .chatinput { flex: 1; min-width: 0; font-family: inherit; font-size: 16px; border: 2px solid #e2e8f0; border-radius: 14px; padding: 11px 14px; background: #fff; }
-  .chatsend { font-family: inherit; font-size: 15px; font-weight: 800; border: none; border-radius: 14px; padding: 11px 16px; background: #22c55e; color: #fff; cursor: pointer; }
+  .chatinput { flex: 1; min-width: 0; font-family: inherit; font-size: 16px; border: 1.5px solid var(--line); border-radius: var(--r); padding: 12px 15px; background: var(--card); box-shadow: var(--sh-sm); }
+  .chatinput:focus { outline: none; border-color: var(--brand); }
+  .chatsend { font-family: inherit; font-size: 15px; font-weight: 800; border: none; border-radius: var(--r); padding: 12px 18px; background: var(--grad); color: #fff; cursor: pointer; box-shadow: 0 4px 12px rgba(109,92,240,.3); }
 
   /* ===== 설치 안내 배너 ===== */
-  .install { display: none; background: #fef9c3; color: #713f12; font-size: 13px; padding: 8px 12px; text-align: center; }
-  .install button { font-family: inherit; margin-left: 8px; border: none; background: #f59e0b; color: #fff; font-weight: 700; padding: 5px 12px; border-radius: 999px; cursor: pointer; }
+  .install { display: none; margin: 0 14px 8px; background: var(--brand-soft); color: var(--brand); font-size: 13px; font-weight: 600; padding: 10px 14px; text-align: center; border-radius: var(--r-sm); }
+  .install button { font-family: inherit; margin-left: 8px; border: none; background: var(--grad); color: #fff; font-weight: 700; padding: 6px 14px; border-radius: 999px; cursor: pointer; }
 </style>
 </head>
 <body>
   <header>
-    <h1>🗣️ 실시간 통역기</h1>
-    <p>말하면 상대 언어로 통역해서 소리 내어 읽어줘요 · 스피커폰 통화 옆에 켜두세요</p>
+    <span class="logo">🌐</span>
+    <div class="brandtext">
+      <span class="wordmark">Lingo</span>
+      <span class="tagline">언어가 달라도, 막힘없이</span>
+    </div>
   </header>
 
   <div class="pickers">
