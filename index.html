@@ -424,8 +424,25 @@ async function autoLoop() {
   }
 }
 
-function autoStart() {
+// 마이크 권한 명시적으로 요청 (분명한 팝업 + 차단 시 안내)
+async function ensureMic() {
+  try {
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      const s = await navigator.mediaDevices.getUserMedia({ audio: true });
+      s.getTracks().forEach((t) => t.stop()); // 권한만 확인하고 바로 해제
+    }
+    return true;
+  } catch (e) { return false; }
+}
+
+async function autoStart() {
   if (!SR) { setStatus("⚠️ 안드로이드 크롬에서 음성 인식이 가장 잘 돼요."); return; }
+  setStatus("🎤 마이크 권한을 확인하는 중… 팝업이 뜨면 ‘허용’을 눌러주세요");
+  const ok = await ensureMic();
+  if (!ok) {
+    setStatus("🎤 마이크가 꺼져 있어요. 주소창 🔒(자물쇠) → 권한 → 마이크 → 허용 후 다시 시작하세요.");
+    return;
+  }
   autoMode = true; turnLang = myLangEl.value;
   autoBtn.textContent = "⏹ 자동 통역 정지";
   autoBtn.classList.add("on");
