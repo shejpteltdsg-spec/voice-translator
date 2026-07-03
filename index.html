@@ -129,6 +129,12 @@
   .clive { font-size: 15px; font-weight: 800; text-align: center; color: #0f766e; }
   .ccopy { font-family: inherit; font-size: 12px; font-weight: 700; border: none; background: #e0f2fe; color: #0369a1; border-radius: 999px; padding: 6px 14px; margin: 8px auto 0; cursor: pointer; display: block; }
 
+  /* ===== 채팅 입력줄 (연결되면 표시) ===== */
+  .chatbar { display: none; gap: 8px; padding: 10px 14px 0; background: #f1f5f9; }
+  .chatbar.show { display: flex; }
+  .chatinput { flex: 1; min-width: 0; font-family: inherit; font-size: 16px; border: 2px solid #e2e8f0; border-radius: 14px; padding: 11px 14px; background: #fff; }
+  .chatsend { font-family: inherit; font-size: 15px; font-weight: 800; border: none; border-radius: 14px; padding: 11px 16px; background: #22c55e; color: #fff; cursor: pointer; }
+
   /* ===== 설치 안내 배너 ===== */
   .install { display: none; background: #fef9c3; color: #713f12; font-size: 13px; padding: 8px 12px; text-align: center; }
   .install button { font-family: inherit; margin-left: 8px; border: none; background: #f59e0b; color: #fff; font-weight: 700; padding: 5px 12px; border-radius: 999px; cursor: pointer; }
@@ -200,6 +206,11 @@
   </div>
 
   <div class="status" id="status">준비됐어요</div>
+
+  <div class="chatbar" id="chatBar">
+    <input id="chatInput" class="chatinput" placeholder="메시지 입력…" autocomplete="off" />
+    <button id="chatSend" class="chatsend">보내기</button>
+  </div>
 
   <div class="autowrap">
     <button class="auto" id="autoBtn">🎧 자동 통역 시작 (핸즈프리)</button>
@@ -652,6 +663,8 @@ gid("connectBtn").onclick = () => { const v = gid("codeInput").value.trim().toUp
 gid("copyCode").onclick = () => { try { navigator.clipboard.writeText(gid("roomCode").textContent); setCallStatus("코드를 복사했어요!"); } catch (_) {} };
 gid("hangBtn").onclick = () => endCall(true);
 gid("callBtn").onclick = () => (callActive ? stopCall() : startCall());
+gid("chatSend").onclick = sendChat;
+gid("chatInput").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); sendChat(); } });
 
 async function hostRoom() {
   if (autoMode) autoStop();
@@ -685,6 +698,7 @@ function setupConn() {
   conn.on("open", () => {
     conn.send({ type: "hello", lang: myLangEl.value });
     gid("callSetup").style.display = "none"; gid("callLive").style.display = "block";
+    gid("chatBar").classList.add("show");   // 연결되면 채팅 입력줄 표시
     setCallStatus("");
   });
   conn.on("data", onCallData);
@@ -697,6 +711,10 @@ async function onCallData(msg) {
     gid("peerLangLabel").textContent = L[peerLang] ? (L[peerLang].flag + " " + L[peerLang].name) : msg.lang;
     return;
   }
+  if (msg.type === "chat") {   // 상대가 보낸 채팅 (이미 내 언어로 번역돼 옴) — 자동 낭독은 안 함
+    addBubble("them", msg.from, msg.orig, msg.tr, myLangEl.value);
+    return;
+  }
   if (msg.type === "speech") {
     speaking = true;
     try { currentRec && currentRec.stop(); } catch (_) {}
@@ -704,6 +722,18 @@ async function onCallData(msg) {
     await speakThen(msg.tr, myLangEl.value);   // 이미 내 언어로 번역돼서 옴
     speaking = false;
   }
+}
+
+// 채팅 보내기: 내 언어로 입력 → 상대 언어로 번역해서 전송
+async function sendChat() {
+  const inp = gid("chatInput");
+  const text = inp.value.trim();
+  if (!text || !conn || !conn.open) return;
+  inp.value = "";
+  let tr = text;
+  try { if (peerLang) tr = await translate(text, myLangEl.value, peerLang); } catch (_) {}
+  conn.send({ type: "chat", orig: text, tr: tr, from: myLangEl.value });
+  addBubble("me", myLangEl.value, text, tr, peerLang || myLangEl.value);
 }
 async function callLoop() {
   while (callActive) {
@@ -740,6 +770,7 @@ function endCall(sendClose) {
   peer = null; conn = null; peerLang = null;
   gid("callLive").style.display = "none"; gid("callSetup").style.display = "block";
   gid("hostArea").style.display = "none"; gid("joinArea").style.display = "none";
+  gid("chatBar").classList.remove("show");
 }
 
 /* =========================================================
