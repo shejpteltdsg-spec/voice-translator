@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<meta name="theme-color" content="#4f46e5" />
+<title>실시간 통역기 · Voice Translator</title>
+
+<!-- 폰에 앱처럼 설치(저장)하기 위한 설정 -->
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="apple-touch-icon" href="icon-180.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="통역기" />
+<meta name="mobile-web-app-capable" content="yes" />
+
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    font-family: "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+    background: linear-gradient(170deg, #4f46e5 0%, #7c3aed 100%);
+    color: #1e293b;
+    display: flex; flex-direction: column;
+    height: 100dvh; overflow: hidden;
+    -webkit-user-select: none; user-select: none;
+  }
+
+  header { color: #fff; padding: 12px 16px 8px; text-align: center; }
+  header h1 { margin: 0; font-size: 19px; font-weight: 800; letter-spacing: .3px; }
+  header p { margin: 2px 0 0; font-size: 11.5px; opacity: .85; }
+
+  /* ===== 언어 선택 (내 언어 / 상대 언어) ===== */
+  .pickers { display: flex; align-items: center; gap: 8px; padding: 8px 12px 12px; }
+  .picker { flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .picker label { font-size: 11px; color: #e0e7ff; font-weight: 700; padding-left: 4px; }
+  select {
+    font-family: inherit; font-size: 15px; font-weight: 700;
+    border: none; border-radius: 12px; padding: 10px 8px;
+    background: #fff; color: #4f46e5; width: 100%;
+    appearance: none; text-align: center; cursor: pointer;
+  }
+  .swap {
+    margin-top: 18px; flex: 0 0 auto;
+    width: 40px; height: 40px; border-radius: 50%;
+    border: none; background: rgba(255,255,255,.2); color: #fff;
+    font-size: 20px; cursor: pointer;
+  }
+  .swap:active { transform: scale(.9); }
+
+  /* ===== 대화 로그 ===== */
+  .log {
+    flex: 1; overflow-y: auto; padding: 14px;
+    background: #f1f5f9; border-radius: 22px 22px 0 0;
+    display: flex; flex-direction: column; gap: 12px;
+    -webkit-user-select: text; user-select: text;
+  }
+  .empty { margin: auto; text-align: center; color: #94a3b8; font-size: 15px; line-height: 1.7; }
+  .empty .big { font-size: 40px; }
+  .bubble { max-width: 82%; padding: 10px 14px; border-radius: 18px; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+  .bubble .who { font-size: 11px; font-weight: 700; opacity: .7; margin-bottom: 2px; }
+  .bubble .orig { font-size: 15px; opacity: .65; }
+  .bubble .trans { font-size: 21px; font-weight: 700; margin-top: 3px; }
+  .bubble .replay { font-size: 12px; opacity: .6; margin-top: 5px; cursor: pointer; display: inline-block; }
+  .me   { align-self: flex-end;   background: #4f46e5; color: #fff; border-bottom-right-radius: 4px; }
+  .them { align-self: flex-start; background: #fff;   color: #1e293b; border-bottom-left-radius: 4px; }
+
+  .status { text-align: center; font-size: 14px; color: #fff; padding: 6px; min-height: 26px; background: rgba(0,0,0,.12); }
+
+  /* ===== 마이크 버튼 ===== */
+  .mics { display: flex; gap: 10px; padding: 12px 14px calc(14px + env(safe-area-inset-bottom)); background: #f1f5f9; }
+  .mic {
+    flex: 1; font-family: inherit; border: none; border-radius: 18px;
+    padding: 15px 6px; cursor: pointer; color: #fff;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    box-shadow: 0 4px 0 rgba(0,0,0,.18); transition: transform .08s, box-shadow .08s;
+  }
+  .mic:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0,0,0,.18); }
+  .mic .icon { font-size: 26px; }
+  .mic .label { font-size: 15px; font-weight: 800; }
+  .mic .sub { font-size: 11px; opacity: .9; }
+  .mic.them { background: #0ea5e9; }
+  .mic.me   { background: #4f46e5; }
+  .mic.listening { animation: pulse .9s infinite; }
+  @keyframes pulse { 0%,100%{ box-shadow:0 4px 0 rgba(0,0,0,.18), 0 0 0 0 rgba(255,255,255,.55);} 50%{ box-shadow:0 4px 0 rgba(0,0,0,.18), 0 0 0 13px rgba(255,255,255,0);} }
+  .mic:disabled { opacity: .5; }
+
+  /* ===== 설치 안내 배너 ===== */
+  .install { display: none; background: #fef9c3; color: #713f12; font-size: 13px; padding: 8px 12px; text-align: center; }
+  .install button { font-family: inherit; margin-left: 8px; border: none; background: #f59e0b; color: #fff; font-weight: 700; padding: 5px 12px; border-radius: 999px; cursor: pointer; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>🗣️ 실시간 통역기</h1>
+    <p>말하면 상대 언어로 통역해서 소리 내어 읽어줘요 · 스피커폰 통화 옆에 켜두세요</p>
+  </header>
+
+  <div class="pickers">
+    <div class="picker">
+      <label>🙋 내 언어</label>
+      <select id="myLang"></select>
+    </div>
+    <button class="swap" id="swap" title="언어 바꾸기">⇄</button>
+    <div class="picker">
+      <label>🗣️ 상대 언어</label>
+      <select id="theirLang"></select>
+    </div>
+  </div>
+
+  <div class="install" id="install">
+    📲 이 앱을 폰에 저장할 수 있어요
+    <button id="installBtn">설치</button>
+  </div>
+
+  <div class="log" id="log">
+    <div class="empty" id="empty">
+      <div class="big">👇</div>
+      마이크 버튼을 누르고 말해보세요.<br>
+      번역해서 <b>소리 내어</b> 읽어줍니다.
+    </div>
+  </div>
+
+  <div class="status" id="status">준비됐어요</div>
+
+  <div class="mics">
+    <button class="mic them" id="micThem">
+      <span class="icon">🎤</span>
+      <span class="label" id="themLabel">상대</span>
+      <span class="sub">상대가 말해요</span>
+    </button>
+    <button class="mic me" id="micMe">
+      <span class="icon">🎤</span>
+      <span class="label" id="meLabel">나</span>
+      <span class="sub">내가 말해요</span>
+    </button>
+  </div>
+
+<script>
+/* =========================================================
+   전 세계 언어 목록
+   stt: 음성인식 코드 / tts: 읽어주기 코드 / mm: 무료 번역 API 코드
+========================================================= */
+const LANGS = [
+  { code:"ko",    name:"한국어",      flag:"🇰🇷", stt:"ko-KR", tts:"ko-KR", mm:"ko"    },
+  { code:"en",    name:"English",     flag:"🇺🇸", stt:"en-US", tts:"en-US", mm:"en"    },
+  { code:"ja",    name:"日本語",      flag:"🇯🇵", stt:"ja-JP", tts:"ja-JP", mm:"ja"    },
+  { code:"zh",    name:"中文(简体)",  flag:"🇨🇳", stt:"zh-CN", tts:"zh-CN", mm:"zh-CN" },
+  { code:"zh-TW", name:"中文(繁體)",  flag:"🇹🇼", stt:"zh-TW", tts:"zh-TW", mm:"zh-TW" },
+  { code:"fr",    name:"Français",    flag:"🇫🇷", stt:"fr-FR", tts:"fr-FR", mm:"fr"    },
+  { code:"de",    name:"Deutsch",     flag:"🇩🇪", stt:"de-DE", tts:"de-DE", mm:"de"    },
+  { code:"es",    name:"Español",     flag:"🇪🇸", stt:"es-ES", tts:"es-ES", mm:"es"    },
+  { code:"it",    name:"Italiano",    flag:"🇮🇹", stt:"it-IT", tts:"it-IT", mm:"it"    },
+  { code:"pt",    name:"Português",   flag:"🇧🇷", stt:"pt-BR", tts:"pt-BR", mm:"pt-BR" },
+  { code:"ru",    name:"Русский",     flag:"🇷🇺", stt:"ru-RU", tts:"ru-RU", mm:"ru"    },
+  { code:"ar",    name:"العربية",     flag:"🇸🇦", stt:"ar-SA", tts:"ar-SA", mm:"ar"    },
+  { code:"hi",    name:"हिन्दी",       flag:"🇮🇳", stt:"hi-IN", tts:"hi-IN", mm:"hi"    },
+  { code:"th",    name:"ไทย",         flag:"🇹🇭", stt:"th-TH", tts:"th-TH", mm:"th"    },
+  { code:"vi",    name:"Tiếng Việt",  flag:"🇻🇳", stt:"vi-VN", tts:"vi-VN", mm:"vi"    },
+  { code:"id",    name:"Indonesia",   flag:"🇮🇩", stt:"id-ID", tts:"id-ID", mm:"id"    },
+  { code:"nl",    name:"Nederlands",  flag:"🇳🇱", stt:"nl-NL", tts:"nl-NL", mm:"nl"    },
+  { code:"tr",    name:"Türkçe",      flag:"🇹🇷", stt:"tr-TR", tts:"tr-TR", mm:"tr"    },
+  { code:"pl",    name:"Polski",      flag:"🇵🇱", stt:"pl-PL", tts:"pl-PL", mm:"pl"    },
+  { code:"sv",    name:"Svenska",     flag:"🇸🇪", stt:"sv-SE", tts:"sv-SE", mm:"sv"    },
+  { code:"uk",    name:"Українська",  flag:"🇺🇦", stt:"uk-UA", tts:"uk-UA", mm:"uk"    },
+  { code:"el",    name:"Ελληνικά",    flag:"🇬🇷", stt:"el-GR", tts:"el-GR", mm:"el"    },
+  { code:"cs",    name:"Čeština",     flag:"🇨🇿", stt:"cs-CZ", tts:"cs-CZ", mm:"cs"    },
+  { code:"ro",    name:"Română",      flag:"🇷🇴", stt:"ro-RO", tts:"ro-RO", mm:"ro"    },
+  { code:"hu",    name:"Magyar",      flag:"🇭🇺", stt:"hu-HU", tts:"hu-HU", mm:"hu"    },
+  { code:"fi",    name:"Suomi",       flag:"🇫🇮", stt:"fi-FI", tts:"fi-FI", mm:"fi"    },
+  { code:"da",    name:"Dansk",       flag:"🇩🇰", stt:"da-DK", tts:"da-DK", mm:"da"    },
+  { code:"no",    name:"Norsk",       flag:"🇳🇴", stt:"nb-NO", tts:"nb-NO", mm:"no"    },
+  { code:"he",    name:"עברית",       flag:"🇮🇱", stt:"he-IL", tts:"he-IL", mm:"he"    },
+  { code:"fa",    name:"فارسی",       flag:"🇮🇷", stt:"fa-IR", tts:"fa-IR", mm:"fa"    },
+  { code:"ms",    name:"Melayu",      flag:"🇲🇾", stt:"ms-MY", tts:"ms-MY", mm:"ms"    },
+  { code:"fil",   name:"Filipino",    flag:"🇵🇭", stt:"fil-PH", tts:"fil-PH", mm:"tl"  },
+];
+const L = Object.fromEntries(LANGS.map(l => [l.code, l]));
+
+/* ===== 드롭다운 채우기 ===== */
+const myLangEl = document.getElementById("myLang");
+const theirLangEl = document.getElementById("theirLang");
+LANGS.forEach(l => {
+  myLangEl.appendChild(new Option(`${l.flag} ${l.name}`, l.code));
+  theirLangEl.appendChild(new Option(`${l.flag} ${l.name}`, l.code));
+});
+myLangEl.value = "ko";
+theirLangEl.value = "en";
+
+const meLabel = document.getElementById("meLabel");
+const themLabel = document.getElementById("themLabel");
+function refreshLabels() {
+  meLabel.textContent = L[myLangEl.value].flag + " " + L[myLangEl.value].name;
+  themLabel.textContent = L[theirLangEl.value].flag + " " + L[theirLangEl.value].name;
+}
+myLangEl.onchange = theirLangEl.onchange = refreshLabels;
+document.getElementById("swap").onclick = () => {
+  const a = myLangEl.value; myLangEl.value = theirLangEl.value; theirLangEl.value = a;
+  refreshLabels();
+};
+refreshLabels();
+
+/* =========================================================
+   화면 표시
+========================================================= */
+const logEl = document.getElementById("log");
+const emptyEl = document.getElementById("empty");
+const statusEl = document.getElementById("status");
+const micMe = document.getElementById("micMe");
+const micThem = document.getElementById("micThem");
+
+function setStatus(msg) { statusEl.textContent = msg; }
+function escapeHtml(s){ return s.replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+
+function addBubble(side, whoLang, original, translated, speakLang) {
+  emptyEl.style.display = "none";
+  const b = document.createElement("div");
+  b.className = "bubble " + side;
+  b.innerHTML =
+    `<div class="who">${L[whoLang].flag} ${escapeHtml(L[whoLang].name)}</div>` +
+    `<div class="orig" dir="auto">${escapeHtml(original)}</div>` +
+    `<div class="trans" dir="auto">${escapeHtml(translated)}</div>` +
+    `<div class="replay">🔊 다시 듣기</div>`;
+  b.querySelector(".replay").onclick = () => speak(translated, speakLang);
+  logEl.appendChild(b);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+/* =========================================================
+   번역: MyMemory 무료 API (키 불필요, 30여 개 언어)
+========================================================= */
+async function translate(text, from, to) {
+  const langpair = L[from].mm + "|" + L[to].mm;
+  const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${encodeURIComponent(langpair)}`;
+  const res = await fetch(url);
+  const data = await res.json();
+  const out = data && data.responseData && data.responseData.translatedText;
+  if (!out) throw new Error("no result");
+  if (/MYMEMORY WARNING|USED ALL AVAILABLE|INVALID LANGUAGE|QUERY LENGTH LIMIT/i.test(out)) throw new Error(out);
+  return out;
+}
+
+/* =========================================================
+   읽어주기 (TTS)
+========================================================= */
+function speak(text, langCode) {
+  try {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = L[langCode].tts;
+    const base = L[langCode].tts.toLowerCase();
+    const voices = speechSynthesis.getVoices();
+    const v = voices.find(v => v.lang && v.lang.toLowerCase() === base)
+           || voices.find(v => v.lang && v.lang.toLowerCase().startsWith(L[langCode].mm.split("-")[0]));
+    if (v) u.voice = v;
+    u.rate = 0.95;
+    speechSynthesis.speak(u);
+  } catch (e) {}
+}
+if ("speechSynthesis" in window) speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
+
+/* =========================================================
+   음성 인식 (STT)
+========================================================= */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognizing = false, currentRec = null;
+if (!SR) {
+  setStatus("⚠️ 이 브라우저는 음성 인식을 지원하지 않아요 (안드로이드 크롬 권장)");
+}
+
+function listen(fromLang, toLang, side, micBtn) {
+  if (!SR) { setStatus("⚠️ 안드로이드 크롬에서 음성 인식이 가장 잘 돼요."); return; }
+  if (recognizing) { currentRec && currentRec.stop(); return; }
+
+  const rec = new SR();
+  currentRec = rec;
+  rec.lang = L[fromLang].stt;
+  rec.interimResults = true;
+  rec.continuous = false;
+  rec.maxAlternatives = 1;
+  let finalText = "";
+
+  rec.onstart = () => {
+    recognizing = true;
+    micBtn.classList.add("listening");
+    setStatus(`🎤 ${L[fromLang].name} 듣는 중…`);
+    speechSynthesis.cancel();
+  };
+  rec.onresult = (e) => {
+    let interim = "";
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const t = e.results[i][0].transcript;
+      if (e.results[i].isFinal) finalText += t; else interim += t;
+    }
+    if (interim) setStatus("… " + interim);
+  };
+  rec.onerror = (e) => {
+    if (e.error === "no-speech") setStatus("🔇 말소리가 안 들렸어요. 다시 눌러보세요.");
+    else if (e.error === "not-allowed") setStatus("🎤 마이크 권한을 허용해 주세요.");
+    else if (e.error === "language-not-supported") setStatus("⚠️ 이 언어는 이 기기에서 음성 인식이 안 돼요.");
+    else setStatus("오류: " + e.error);
+  };
+  rec.onend = async () => {
+    recognizing = false;
+    micBtn.classList.remove("listening");
+    const text = finalText.trim();
+    if (!text) return;
+    setStatus("🌐 번역 중…");
+    try {
+      const translated = await translate(text, fromLang, toLang);
+      addBubble(side, fromLang, text, translated, toLang);
+      speak(translated, toLang);
+      setStatus(`✅ ${L[toLang].name}로 전달했어요`);
+    } catch (err) {
+      const msg = /USED ALL AVAILABLE/i.test(err.message)
+        ? "⚠️ 오늘 무료 번역 사용량을 다 썼어요. 내일 다시 되거나, 자체 번역서버로 바꿀 수 있어요."
+        : "⚠️ 번역 실패 — 인터넷 연결을 확인하세요.";
+      setStatus(msg);
+    }
+  };
+
+  try { rec.start(); } catch (e) {}
+}
+
+micMe.onclick   = () => listen(myLangEl.value, theirLangEl.value, "me", micMe);
+micThem.onclick = () => listen(theirLangEl.value, myLangEl.value, "them", micThem);
+
+/* =========================================================
+   PWA: 폰에 설치(저장) 지원
+========================================================= */
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+}
+let deferredPrompt = null;
+const installBanner = document.getElementById("install");
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  installBanner.style.display = "block";
+});
+document.getElementById("installBtn").onclick = async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  installBanner.style.display = "none";
+};
+window.addEventListener("appinstalled", () => { installBanner.style.display = "none"; });
+</script>
+</body>
+</html>
