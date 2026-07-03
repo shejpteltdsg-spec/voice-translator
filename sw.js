@@ -1,5 +1,5 @@
 // 오프라인 지원 + 설치용 서비스워커
-const CACHE = "translator-v1";
+const CACHE = "translator-v2";
 const ASSETS = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./icon-180.png"];
 
 self.addEventListener("install", (e) => {
@@ -11,9 +11,18 @@ self.addEventListener("activate", (e) => {
   );
 });
 self.addEventListener("fetch", (e) => {
-  const url = new URL(e.request.url);
-  // 같은 출처(앱 파일)만 캐시 우선. 번역 API 등 외부 요청은 그대로 통과.
-  if (url.origin === location.origin) {
-    e.respondWith(caches.match(e.request).then((r) => r || fetch(e.request)));
+  const req = e.request;
+  const url = new URL(req.url);
+  if (url.origin !== location.origin) return; // 번역 API 등 외부 요청은 그대로 통과
+
+  if (req.mode === "navigate") {
+    // HTML 화면은 네트워크 우선(항상 최신), 오프라인이면 캐시 사용
+    e.respondWith(
+      fetch(req).then((r) => { const c = r.clone(); caches.open(CACHE).then((ca) => ca.put(req, c)); return r; })
+        .catch(() => caches.match(req).then((r) => r || caches.match("./index.html")))
+    );
+  } else {
+    // 그 외 파일(아이콘 등)은 캐시 우선
+    e.respondWith(caches.match(req).then((r) => r || fetch(req)));
   }
 });

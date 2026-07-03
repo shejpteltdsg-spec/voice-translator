@@ -85,6 +85,17 @@
   @keyframes pulse { 0%,100%{ box-shadow:0 4px 0 rgba(0,0,0,.18), 0 0 0 0 rgba(255,255,255,.55);} 50%{ box-shadow:0 4px 0 rgba(0,0,0,.18), 0 0 0 13px rgba(255,255,255,0);} }
   .mic:disabled { opacity: .5; }
 
+  /* ===== 자동(핸즈프리) 통역 버튼 ===== */
+  .autowrap { background: #f1f5f9; padding: 12px 14px 0; }
+  .auto {
+    width: 100%; font-family: inherit; font-size: 17px; font-weight: 800;
+    border: none; border-radius: 16px; padding: 15px; color: #fff;
+    background: #22c55e; box-shadow: 0 4px 0 rgba(0,0,0,.18); cursor: pointer;
+  }
+  .auto:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0,0,0,.18); }
+  .auto.on { background: #ef4444; animation: pulse .9s infinite; }
+  .auto:disabled { opacity: .5; }
+
   /* ===== 설치 안내 배너 ===== */
   .install { display: none; background: #fef9c3; color: #713f12; font-size: 13px; padding: 8px 12px; text-align: center; }
   .install button { font-family: inherit; margin-left: 8px; border: none; background: #f59e0b; color: #fff; font-weight: 700; padding: 5px 12px; border-radius: 999px; cursor: pointer; }
@@ -115,13 +126,18 @@
 
   <div class="log" id="log">
     <div class="empty" id="empty">
-      <div class="big">👇</div>
-      마이크 버튼을 누르고 말해보세요.<br>
-      번역해서 <b>소리 내어</b> 읽어줍니다.
+      <div class="big">🎧</div>
+      <b>자동 통역 시작</b>을 누르고<br>
+      번갈아 말하면 알아서 통역해요.<br>
+      <span style="font-size:13px">(스피커폰 통화 옆에 켜두세요)</span>
     </div>
   </div>
 
   <div class="status" id="status">준비됐어요</div>
+
+  <div class="autowrap">
+    <button class="auto" id="autoBtn">🎧 자동 통역 시작 (핸즈프리)</button>
+  </div>
 
   <div class="mics">
     <button class="mic them" id="micThem">
@@ -322,8 +338,114 @@ function listen(fromLang, toLang, side, micBtn) {
   try { rec.start(); } catch (e) {}
 }
 
-micMe.onclick   = () => listen(myLangEl.value, theirLangEl.value, "me", micMe);
-micThem.onclick = () => listen(theirLangEl.value, myLangEl.value, "them", micThem);
+/* =========================================================
+   🎧 자동(핸즈프리) 통역 모드
+   한 번 켜두면 번갈아 말할 때마다 자동으로 인식→번역→읽기
+========================================================= */
+const autoBtn = document.getElementById("autoBtn");
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+let autoMode = false, turnLang = null;
+if (!SR) autoBtn.disabled = true;
+
+function highlightTurn(lang) {
+  const mine = lang === myLangEl.value;
+  micMe.classList.toggle("listening", mine);
+  micThem.classList.toggle("listening", !mine);
+}
+
+// 한 번 듣고 최종 텍스트를 반환 (자동 루프용)
+function recognizeOnce(lang) {
+  return new Promise((resolve) => {
+    if (!SR) { resolve(null); return; }
+    const rec = new SR(); currentRec = rec;
+    rec.lang = L[lang].stt; rec.interimResults = true; rec.continuous = false; rec.maxAlternatives = 1;
+    let finalText = "";
+    rec.onstart = () => { recognizing = true; setStatus(`🎙️ ${L[lang].flag} ${L[lang].name} 말하세요…`); };
+    rec.onresult = (e) => {
+      let interim = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const t = e.results[i][0].transcript;
+        if (e.results[i].isFinal) finalText += t; else interim += t;
+      }
+      if (interim) setStatus("… " + interim);
+    };
+    rec.onerror = (e) => {
+      if (e.error === "not-allowed") { setStatus("🎤 마이크 권한을 허용해 주세요."); autoStop(); }
+      else if (e.error === "language-not-supported") setStatus("⚠️ 이 언어는 이 기기에서 음성 인식이 안 돼요.");
+    };
+    rec.onend = () => { recognizing = false; resolve(finalText.trim()); };
+    try { rec.start(); } catch (_) { resolve(null); }
+  });
+}
+
+// 번역문을 소리 내어 읽고, 다 읽으면 resolve (자동 루프용)
+function speakThen(text, lang) {
+  return new Promise((resolve) => {
+    try {
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = L[lang].tts;
+      const base = L[lang].tts.toLowerCase();
+      const voices = speechSynthesis.getVoices();
+      const v = voices.find((vo) => vo.lang && vo.lang.toLowerCase() === base)
+             || voices.find((vo) => vo.lang && vo.lang.toLowerCase().startsWith(L[lang].mm.split("-")[0]));
+      if (v) u.voice = v;
+      u.rate = 0.95;
+      let done = false; const finish = () => { if (!done) { done = true; resolve(); } };
+      u.onend = finish; u.onerror = finish;
+      setTimeout(finish, Math.min(15000, 1500 + text.length * 90)); // onend 안 오는 기기 대비 안전장치
+      speechSynthesis.speak(u);
+    } catch (_) { resolve(); }
+  });
+}
+
+async function autoLoop() {
+  while (autoMode) {
+    const from = turnLang;
+    const to = (from === myLangEl.value) ? theirLangEl.value : myLangEl.value;
+    highlightTurn(from);
+    const text = await recognizeOnce(from);
+    if (!autoMode) break;
+    if (!text) { await sleep(200); continue; }         // 말소리 없으면 계속 대기
+    setStatus(`🌐 ${L[to].name}로 번역 중…`);
+    let translated;
+    try { translated = await translate(text, from, to); }
+    catch (e) {
+      setStatus(/USED ALL AVAILABLE/i.test(e.message)
+        ? "⚠️ 오늘 무료 번역 사용량을 다 썼어요."
+        : "⚠️ 번역 실패 — 인터넷 확인");
+      await sleep(600); continue;
+    }
+    addBubble((from === myLangEl.value) ? "me" : "them", from, text, translated, to);
+    await speakThen(translated, to);
+    if (!autoMode) break;
+    await sleep(250);          // 방금 읽은 소리를 다시 듣지 않도록 잠깐 쉼
+    turnLang = to;             // 이제 상대가 대답할 차례
+  }
+}
+
+function autoStart() {
+  if (!SR) { setStatus("⚠️ 안드로이드 크롬에서 음성 인식이 가장 잘 돼요."); return; }
+  autoMode = true; turnLang = myLangEl.value;
+  autoBtn.textContent = "⏹ 자동 통역 정지";
+  autoBtn.classList.add("on");
+  emptyEl.style.display = "none";
+  autoLoop();
+}
+function autoStop() {
+  autoMode = false;
+  autoBtn.textContent = "🎧 자동 통역 시작 (핸즈프리)";
+  autoBtn.classList.remove("on");
+  try { currentRec && currentRec.stop(); } catch (_) {}
+  micMe.classList.remove("listening"); micThem.classList.remove("listening");
+  setStatus("정지됨 · 버튼을 누르면 다시 시작해요");
+}
+autoBtn.onclick = () => (autoMode ? autoStop() : autoStart());
+
+// 차례 강제 지정(자동 모드) / 한 번만 말하기(수동 모드)
+function setTurn(lang) { turnLang = lang; try { currentRec && currentRec.stop(); } catch (_) {} }
+micMe.onclick   = () => (autoMode ? setTurn(myLangEl.value)    : listen(myLangEl.value, theirLangEl.value, "me", micMe));
+micThem.onclick = () => (autoMode ? setTurn(theirLangEl.value) : listen(theirLangEl.value, myLangEl.value, "them", micThem));
 
 /* =========================================================
    PWA: 폰에 설치(저장) 지원
