@@ -177,6 +177,19 @@
   .install { display: none; margin: 0 14px 8px; background: var(--brand-soft); color: var(--brand); font-size: 13px; font-weight: 600; padding: 10px 14px; text-align: center; border-radius: var(--r-sm); }
   .install button { font-family: inherit; margin-left: 8px; border: none; background: var(--grad); color: #fff; font-weight: 700; padding: 6px 14px; border-radius: 999px; cursor: pointer; }
 
+  /* ===== 목소리 맞춤 슬라이더 ===== */
+  .vtune { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); margin: 6px 0; }
+  .vtune input[type=range] { flex: 1; accent-color: var(--brand); }
+
+  /* ===== 배경 테마 꾸미기 ===== */
+  .themebar { padding: 0 14px 8px; }
+  .themetoggle { width: 100%; font-family: inherit; font-size: 13px; font-weight: 700; color: #db2777; background: var(--card); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 11px 13px; cursor: pointer; box-shadow: var(--sh-sm); text-align: left; }
+  .themepanel { display: none; background: var(--card); border: 1px solid var(--line); border-radius: var(--r-sm); margin-top: 8px; padding: 12px; box-shadow: var(--sh); }
+  .themepanel.open { display: block; }
+  .swatches { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .swatch { height: 52px; border-radius: 12px; border: 3px solid transparent; cursor: pointer; box-shadow: var(--sh-sm); }
+  .swatch.sel { border-color: #0f172a; }
+
   /* ===== 첫 설정 (언어 선택 온보딩) ===== */
   .onboarding { display: none; position: fixed; inset: 0; z-index: 100; align-items: center; justify-content: center; padding: 24px; background: linear-gradient(160deg, #FEE500, #FFD400); }
   .ob-card { background: #fff; border-radius: 26px; padding: 30px 22px; width: 100%; max-width: 360px; text-align: center; box-shadow: 0 22px 55px rgba(0,0,0,.25); }
@@ -254,6 +267,13 @@
         <button class="cbtn hang" id="hangBtn" data-i18n="hang_btn">연결 끊기</button>
         <div class="cnote" data-i18n="earbud_note">🎧 이어폰을 쓰면 소리 겹침 없이 깔끔해요.</div>
       </div>
+    </div>
+  </div>
+
+  <div class="themebar">
+    <button class="themetoggle" id="themeToggle">🎨 배경 꾸미기 ▾</button>
+    <div class="themepanel" id="themePanel">
+      <div class="swatches" id="swatches"></div>
     </div>
   </div>
 
@@ -576,12 +596,20 @@ async function translate(text, from, to) {
    읽어주기 (TTS) + 목소리 선택 (남/여 · 여러 목소리)
 ========================================================= */
 let voicePref = {}, genderPref = {};   // {langCode: voiceURI}, {langCode: 'M'|'F'}
+let ttsPitch = 1, ttsRate = 0.95;      // 내 목소리 맞춤(높낮이/속도)
 try {
   voicePref  = JSON.parse(localStorage.getItem("voicePref")  || "{}");
   genderPref = JSON.parse(localStorage.getItem("genderPref") || "{}");
+  const p = parseFloat(localStorage.getItem("ttsPitch")); if (!isNaN(p)) ttsPitch = p;
+  const r = parseFloat(localStorage.getItem("ttsRate"));  if (!isNaN(r)) ttsRate = r;
 } catch (_) {}
 function save() {
-  try { localStorage.setItem("voicePref", JSON.stringify(voicePref)); localStorage.setItem("genderPref", JSON.stringify(genderPref)); } catch (_) {}
+  try {
+    localStorage.setItem("voicePref", JSON.stringify(voicePref));
+    localStorage.setItem("genderPref", JSON.stringify(genderPref));
+    localStorage.setItem("ttsPitch", String(ttsPitch));
+    localStorage.setItem("ttsRate", String(ttsRate));
+  } catch (_) {}
 }
 
 function allVoices() { return ("speechSynthesis" in window) ? speechSynthesis.getVoices() : []; }
@@ -625,7 +653,7 @@ function speakRobust(text, langCode, onDone) {
     const u = new SpeechSynthesisUtterance(text);
     u.lang = L[langCode].tts;
     if (useChosen) { const v = getVoiceFor(langCode); if (v) u.voice = v; }
-    u.rate = 0.95;
+    u.rate = ttsRate; u.pitch = ttsPitch;
     u.onstart = () => { started = true; };
     u.onend = () => done();
     u.onerror = () => {
@@ -660,6 +688,22 @@ function buildVoicePanel() {
   if (!voicePanel || !voicePanel.classList.contains("open")) return;
   const langs = [...new Set([myLangEl.value, theirLangEl.value])];
   voicePanel.innerHTML = "";
+
+  // 🎚️ 내 목소리 맞춤 (높낮이·속도) — 저장됨
+  const tune = document.createElement("div");
+  tune.className = "vrow";
+  tune.innerHTML =
+    '<div class="vtitle">🎚️ 내 목소리 맞춤 (저장됨)</div>' +
+    '<div class="vtune"><span>낮게</span><input type="range" id="pitchR" min="0" max="2" step="0.1"><span>높게</span></div>' +
+    '<div class="vtune"><span>느리게</span><input type="range" id="rateR" min="0.5" max="1.4" step="0.05"><span>빠르게</span></div>' +
+    '<div class="vnone">🎙️ 실제 내 목소리 복제(AI)는 유료 서비스가 필요해요. 여기선 목소리 높낮이·속도를 내 취향대로 저장해요.</div>';
+  voicePanel.appendChild(tune);
+  const pitchR = tune.querySelector("#pitchR"); pitchR.value = ttsPitch;
+  const rateR = tune.querySelector("#rateR"); rateR.value = ttsRate;
+  pitchR.oninput = () => { ttsPitch = parseFloat(pitchR.value); save(); };
+  rateR.oninput = () => { ttsRate = parseFloat(rateR.value); save(); };
+  pitchR.onchange = rateR.onchange = () => previewVoice(myLangEl.value);
+
   langs.forEach(code => {
     const list = voicesFor(code);
     const row = document.createElement("div");
@@ -1048,6 +1092,49 @@ document.getElementById("installBtn").onclick = async () => {
   installBanner.style.display = "none";
 };
 window.addEventListener("appinstalled", () => { installBanner.style.display = "none"; });
+
+/* =========================================================
+   🎨 배경 테마 꾸미기 (내 폰에만 저장)
+========================================================= */
+const BG_THEMES = [
+  { name: "카카오", bg: "#b2c7da" },
+  { name: "화이트", bg: "#eef1f6" },
+  { name: "민트",   bg: "linear-gradient(160deg,#c8f0e2,#a0e6cf)" },
+  { name: "선셋",   bg: "linear-gradient(160deg,#ffd9a0,#fd9d8c)" },
+  { name: "핑크",   bg: "linear-gradient(160deg,#ffd6ec,#f9a8d4)" },
+  { name: "라벤더", bg: "linear-gradient(160deg,#e0d4fb,#c4b5fd)" },
+  { name: "바다",   bg: "linear-gradient(160deg,#a5d8ff,#74c0fc)" },
+  { name: "나이트", bg: "linear-gradient(160deg,#3b3f5c,#232640)" },
+];
+let bgTheme = null;
+try { bgTheme = localStorage.getItem("bgTheme"); } catch (_) {}
+function applyBg(bg) { document.documentElement.style.setProperty("--kakao-bg", bg); }
+if (bgTheme) applyBg(bgTheme);
+
+const themeToggle = document.getElementById("themeToggle");
+const themePanel = document.getElementById("themePanel");
+const swatchesEl = document.getElementById("swatches");
+themeToggle.onclick = () => {
+  themePanel.classList.toggle("open");
+  if (themePanel.classList.contains("open") && !swatchesEl.children.length) buildSwatches();
+};
+function buildSwatches() {
+  swatchesEl.innerHTML = "";
+  BG_THEMES.forEach(th => {
+    const s = document.createElement("div");
+    s.className = "swatch" + (bgTheme === th.bg ? " sel" : "");
+    s.style.background = th.bg;
+    s.title = th.name;
+    s.onclick = () => {
+      bgTheme = th.bg;
+      try { localStorage.setItem("bgTheme", th.bg); } catch (_) {}
+      applyBg(th.bg);
+      [...swatchesEl.children].forEach(c => c.classList.remove("sel"));
+      s.classList.add("sel");
+    };
+    swatchesEl.appendChild(s);
+  });
+}
 
 /* =========================================================
    첫 설정: 처음 켜면 언어 선택, 이후엔 저장된 언어로
