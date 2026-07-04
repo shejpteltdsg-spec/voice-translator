@@ -176,65 +176,90 @@
   /* ===== 설치 안내 배너 ===== */
   .install { display: none; margin: 0 14px 8px; background: var(--brand-soft); color: var(--brand); font-size: 13px; font-weight: 600; padding: 10px 14px; text-align: center; border-radius: var(--r-sm); }
   .install button { font-family: inherit; margin-left: 8px; border: none; background: var(--grad); color: #fff; font-weight: 700; padding: 6px 14px; border-radius: 999px; cursor: pointer; }
+
+  /* ===== 첫 설정 (언어 선택 온보딩) ===== */
+  .onboarding { display: none; position: fixed; inset: 0; z-index: 100; align-items: center; justify-content: center; padding: 24px; background: linear-gradient(160deg, #FEE500, #FFD400); }
+  .ob-card { background: #fff; border-radius: 26px; padding: 30px 22px; width: 100%; max-width: 360px; text-align: center; box-shadow: 0 22px 55px rgba(0,0,0,.25); }
+  .ob-logo { width: 66px; height: 66px; border-radius: 20px; background: var(--grad); display: grid; place-items: center; font-size: 34px; margin: 0 auto 12px; box-shadow: 0 8px 20px rgba(109,92,240,.35); }
+  .ob-brand { font-size: 28px; font-weight: 800; color: var(--ink); letter-spacing: -.5px; }
+  .ob-title { font-size: 13px; color: var(--muted); margin: 6px 0 20px; font-weight: 600; }
+  .ob-langs { display: flex; flex-direction: column; gap: 10px; }
+  .ob-langs button { font-family: inherit; font-size: 18px; font-weight: 800; border: 2px solid var(--line); background: #fff; color: var(--ink); border-radius: 16px; padding: 15px; cursor: pointer; transition: transform .1s, border-color .1s, background .1s; }
+  .ob-langs button:active { transform: scale(.98); }
+  .ob-langs button:hover { border-color: var(--kakao); background: #FFFBEA; }
 </style>
 </head>
 <body>
+  <div class="onboarding" id="onboarding">
+    <div class="ob-card">
+      <div class="ob-logo">🌐</div>
+      <div class="ob-brand">Lingo</div>
+      <div class="ob-title">언어 · Language · 语言 · 言語</div>
+      <div class="ob-langs">
+        <button data-uilang="ko" data-my="ko">🇰🇷 한국어</button>
+        <button data-uilang="en" data-my="en">🇺🇸 English</button>
+        <button data-uilang="zh" data-my="zh">🇨🇳 中文</button>
+        <button data-uilang="ja" data-my="ja">🇯🇵 日本語</button>
+      </div>
+    </div>
+  </div>
+
   <header>
     <span class="logo">🌐</span>
     <div class="brandtext">
       <span class="wordmark">Lingo</span>
-      <span class="tagline">언어가 달라도, 막힘없이</span>
+      <span class="tagline" data-i18n="tagline">언어가 달라도, 막힘없이</span>
     </div>
   </header>
 
   <div class="pickers">
     <div class="picker">
-      <label>🙋 내 언어</label>
+      <label data-i18n="lbl_my">🙋 내 언어</label>
       <select id="myLang"></select>
     </div>
-    <button class="swap" id="swap" title="언어 바꾸기">⇄</button>
+    <button class="swap" id="swap" title="swap">⇄</button>
     <div class="picker">
-      <label>🗣️ 상대 언어</label>
+      <label data-i18n="lbl_their">🗣️ 상대 언어</label>
       <select id="theirLang"></select>
     </div>
   </div>
 
   <div class="voicebar">
-    <button class="voicetoggle" id="voiceToggle">🔊 목소리 설정 (남 / 여 · 여러 목소리) ▾</button>
+    <button class="voicetoggle" id="voiceToggle" data-i18n="voice_toggle">🔊 목소리 설정 (남 / 여 · 여러 목소리) ▾</button>
     <div class="voicepanel" id="voicePanel"></div>
   </div>
 
   <div class="callbar">
-    <button class="calltoggle" id="callToggle">📞 멀리 있는 사람과 통역 통화 (둘 다 앱 필요) ▾</button>
+    <button class="calltoggle" id="callToggle" data-i18n="call_toggle">📞 멀리 있는 사람과 통역 통화 ▾</button>
     <div class="callpanel" id="callPanel">
       <div id="callSetup">
         <div class="callrow">
-          <button class="cbtn host" id="hostBtn">🆕 방 만들기</button>
-          <button class="cbtn join" id="joinBtn">🔑 코드로 참여</button>
+          <button class="cbtn host" id="hostBtn" data-i18n="host_btn">🆕 방 만들기</button>
+          <button class="cbtn join" id="joinBtn" data-i18n="join_btn">🔑 코드로 참여</button>
         </div>
         <div id="hostArea" style="display:none">
           <div class="ccode" id="roomCode">…</div>
-          <button class="ccopy" id="copyCode">📋 코드 복사</button>
-          <div class="cnote">이 코드를 상대에게 알려주세요.<br>상대가 참여하면 자동으로 연결돼요.</div>
+          <button class="ccopy" id="copyCode" data-i18n="copy_code">📋 코드 복사</button>
+          <div class="cnote" data-i18n="room_note">이 코드를 상대에게 알려주세요. 상대가 참여하면 자동으로 연결돼요.</div>
         </div>
         <div id="joinArea" style="display:none">
-          <input id="codeInput" class="cinput" placeholder="코드" maxlength="5" autocapitalize="characters" autocomplete="off" />
-          <button class="cbtn" id="connectBtn" style="width:100%;margin-top:8px">연결하기</button>
+          <input id="codeInput" class="cinput" placeholder="코드" data-i18n-ph="code_ph" maxlength="5" autocapitalize="characters" autocomplete="off" />
+          <button class="cbtn" id="connectBtn" data-i18n="connect_btn" style="width:100%;margin-top:8px">연결하기</button>
         </div>
         <div class="cnote" id="callStatus"></div>
       </div>
       <div id="callLive" style="display:none">
-        <div class="clive">🟢 연결됨 · 상대 언어: <span id="peerLangLabel">?</span></div>
-        <button class="cbtn call" id="callBtn">📞 통역 통화 시작</button>
-        <button class="cbtn hang" id="hangBtn">연결 끊기</button>
-        <div class="cnote">🎧 <b>이어폰</b>을 쓰면 소리 겹침 없이 깔끔해요.<br>내가 말하면 상대는 자기 언어로, 상대 말은 내가 내 언어로 들어요.</div>
+        <div class="clive"><span data-i18n="connected_label">🟢 연결됨 · 상대 언어:</span> <span id="peerLangLabel">?</span></div>
+        <button class="cbtn call" id="callBtn" data-i18n="call_start">📞 통역 통화 시작</button>
+        <button class="cbtn hang" id="hangBtn" data-i18n="hang_btn">연결 끊기</button>
+        <div class="cnote" data-i18n="earbud_note">🎧 이어폰을 쓰면 소리 겹침 없이 깔끔해요.</div>
       </div>
     </div>
   </div>
 
   <div class="install" id="install">
-    📲 이 앱을 폰에 저장할 수 있어요
-    <button id="installBtn">설치</button>
+    <span data-i18n="install_text">📲 이 앱을 폰에 저장할 수 있어요</span>
+    <button id="installBtn" data-i18n="install_btn">설치</button>
   </div>
 
   <div class="log" id="log">
@@ -246,32 +271,32 @@
     </div>
   </div>
 
-  <div class="status" id="status">준비됐어요</div>
+  <div class="status" id="status" data-i18n="ready">준비됐어요</div>
 
   <div class="chatlangbar" id="chatLangBar">
-    <span>💬 내가 볼 번역 언어</span>
+    <span data-i18n="chat_lang_label">💬 내가 볼 번역 언어</span>
     <select id="chatLang" class="chatlang"></select>
   </div>
 
   <div class="chatbar" id="chatBar">
-    <input id="chatInput" class="chatinput" placeholder="메시지 입력…" autocomplete="off" />
-    <button id="chatSend" class="chatsend">보내기</button>
+    <input id="chatInput" class="chatinput" placeholder="메시지 입력…" data-i18n-ph="chat_ph" autocomplete="off" />
+    <button id="chatSend" class="chatsend" data-i18n="chat_send">보내기</button>
   </div>
 
   <div class="autowrap">
-    <button class="auto" id="autoBtn">🎧 자동 통역 시작 (핸즈프리)</button>
+    <button class="auto" id="autoBtn" data-i18n="auto_start">🎧 자동 통역 시작 (핸즈프리)</button>
   </div>
 
   <div class="mics">
     <button class="mic them" id="micThem">
       <span class="icon">🎤</span>
       <span class="label" id="themLabel">상대</span>
-      <span class="sub">상대가 말해요</span>
+      <span class="sub" data-i18n="mic_them_sub">상대가 말해요</span>
     </button>
     <button class="mic me" id="micMe">
       <span class="icon">🎤</span>
       <span class="label" id="meLabel">나</span>
-      <span class="sub">내가 말해요</span>
+      <span class="sub" data-i18n="mic_me_sub">내가 말해요</span>
     </button>
   </div>
 
@@ -315,6 +340,93 @@ const LANGS = [
   { code:"fil",   name:"Filipino",    flag:"🇵🇭", stt:"fil-PH", tts:"fil-PH", mm:"tl",   hello:"Kumusta" },
 ];
 const L = Object.fromEntries(LANGS.map(l => [l.code, l]));
+
+/* =========================================================
+   다국어 UI (i18n) — 한국어 / English / 中文 / 日本語
+========================================================= */
+const I18N = {
+  ko: {
+    ob_title: "언어 · Language · 语言 · 言語", tagline: "언어가 달라도, 막힘없이",
+    lbl_my: "🙋 내 언어", lbl_their: "🗣️ 상대 언어",
+    voice_toggle: "🔊 목소리 설정 (남 / 여 · 여러 목소리) ▾",
+    call_toggle: "📞 멀리 있는 사람과 통역 통화 ▾",
+    host_btn: "🆕 방 만들기", join_btn: "🔑 코드로 참여", copy_code: "📋 코드 복사",
+    connect_btn: "연결하기", call_start: "📞 통역 통화 시작", call_stop: "⏹ 통화 정지", hang_btn: "연결 끊기",
+    auto_start: "🎧 자동 통역 시작 (핸즈프리)", auto_stop: "⏹ 자동 통역 정지",
+    room_note: "이 코드를 상대에게 알려주세요. 상대가 참여하면 자동으로 연결돼요.",
+    earbud_note: "🎧 이어폰을 쓰면 소리 겹침 없이 깔끔해요.",
+    connected_label: "🟢 연결됨 · 상대 언어:", chat_lang_label: "💬 내가 볼 번역 언어",
+    chat_send: "보내기", chat_ph: "메시지 입력…", code_ph: "코드",
+    mic_them_sub: "상대가 말해요", mic_me_sub: "내가 말해요",
+    empty_html: '<div class="big">🎧</div>자동 통역을 켜고<br>번갈아 말하면 통역해요.',
+    install_text: "📲 이 앱을 폰에 저장할 수 있어요", install_btn: "설치", ready: "준비됐어요",
+    listening: "🎙️ {0} 말하세요…", translating: "🌐 {0} 번역 중…", transferred: "✅ {0} 전달 완료",
+  },
+  en: {
+    ob_title: "언어 · Language · 语言 · 言語", tagline: "No language barriers",
+    lbl_my: "🙋 My language", lbl_their: "🗣️ Their language",
+    voice_toggle: "🔊 Voice settings (male / female) ▾",
+    call_toggle: "📞 Interpreted call with someone far away ▾",
+    host_btn: "🆕 Create room", join_btn: "🔑 Join with code", copy_code: "📋 Copy code",
+    connect_btn: "Connect", call_start: "📞 Start interpreted call", call_stop: "⏹ Stop call", hang_btn: "Disconnect",
+    auto_start: "🎧 Start auto-interpret (hands-free)", auto_stop: "⏹ Stop auto-interpret",
+    room_note: "Share this code with the other person. You'll connect automatically when they join.",
+    earbud_note: "🎧 Use earphones to avoid audio echo.",
+    connected_label: "🟢 Connected · Their language:", chat_lang_label: "💬 Translate messages to",
+    chat_send: "Send", chat_ph: "Type a message…", code_ph: "Code",
+    mic_them_sub: "they speak", mic_me_sub: "I speak",
+    empty_html: '<div class="big">🎧</div>Turn on auto-interpret<br>and take turns speaking.',
+    install_text: "📲 You can save this app to your phone", install_btn: "Install", ready: "Ready",
+    listening: "🎙️ Speak in {0}…", translating: "🌐 Translating to {0}…", transferred: "✅ Sent in {0}",
+  },
+  zh: {
+    ob_title: "언어 · Language · 语言 · 言語", tagline: "语言不通也能畅聊",
+    lbl_my: "🙋 我的语言", lbl_their: "🗣️ 对方语言",
+    voice_toggle: "🔊 声音设置（男 / 女）▾",
+    call_toggle: "📞 与远方的人翻译通话 ▾",
+    host_btn: "🆕 创建房间", join_btn: "🔑 用代码加入", copy_code: "📋 复制代码",
+    connect_btn: "连接", call_start: "📞 开始翻译通话", call_stop: "⏹ 停止通话", hang_btn: "断开连接",
+    auto_start: "🎧 开始自动翻译（免手动）", auto_stop: "⏹ 停止自动翻译",
+    room_note: "把这个代码告诉对方。对方加入后会自动连接。",
+    earbud_note: "🎧 建议使用耳机，避免声音重叠。",
+    connected_label: "🟢 已连接 · 对方语言：", chat_lang_label: "💬 消息翻译成",
+    chat_send: "发送", chat_ph: "输入消息…", code_ph: "代码",
+    mic_them_sub: "对方说", mic_me_sub: "我说",
+    empty_html: '<div class="big">🎧</div>开启自动翻译<br>轮流说话即可翻译。',
+    install_text: "📲 可以把这个应用保存到手机", install_btn: "安装", ready: "准备好了",
+    listening: "🎙️ 请用{0}说话…", translating: "🌐 正在翻译成{0}…", transferred: "✅ 已用{0}发送",
+  },
+  ja: {
+    ob_title: "언어 · Language · 语言 · 言語", tagline: "言葉が違っても、なめらかに",
+    lbl_my: "🙋 私の言語", lbl_their: "🗣️ 相手の言語",
+    voice_toggle: "🔊 音声設定（男 / 女）▾",
+    call_toggle: "📞 遠くの人と通訳通話 ▾",
+    host_btn: "🆕 ルーム作成", join_btn: "🔑 コードで参加", copy_code: "📋 コードをコピー",
+    connect_btn: "接続する", call_start: "📞 通訳通話を開始", call_stop: "⏹ 通話を停止", hang_btn: "切断する",
+    auto_start: "🎧 自動通訳を開始（ハンズフリー）", auto_stop: "⏹ 自動通訳を停止",
+    room_note: "このコードを相手に伝えてください。相手が参加すると自動でつながります。",
+    earbud_note: "🎧 イヤホンを使うと音が重なりません。",
+    connected_label: "🟢 接続済み · 相手の言語：", chat_lang_label: "💬 メッセージの翻訳先",
+    chat_send: "送信", chat_ph: "メッセージを入力…", code_ph: "コード",
+    mic_them_sub: "相手が話す", mic_me_sub: "私が話す",
+    empty_html: '<div class="big">🎧</div>自動通訳をオンにして<br>交互に話してください。',
+    install_text: "📲 このアプリをスマホに保存できます", install_btn: "インストール", ready: "準備完了",
+    listening: "🎙️ {0}で話してください…", translating: "🌐 {0}に翻訳中…", transferred: "✅ {0}で送信しました",
+  },
+};
+let UI = "ko", T = I18N.ko;
+function t(k, a) {
+  const s = (T[k] !== undefined) ? T[k] : (I18N.ko[k] !== undefined ? I18N.ko[k] : k);
+  return (a !== undefined) ? String(s).replace("{0}", a) : s;
+}
+function applyI18n(lang) {
+  UI = I18N[lang] ? lang : "ko"; T = I18N[UI];
+  try { document.documentElement.lang = UI; } catch (_) {}
+  document.querySelectorAll("[data-i18n]").forEach(el => { const k = el.getAttribute("data-i18n"); if (T[k] !== undefined) el.textContent = T[k]; });
+  document.querySelectorAll("[data-i18n-ph]").forEach(el => { const k = el.getAttribute("data-i18n-ph"); if (T[k] !== undefined) el.placeholder = T[k]; });
+  const emp = document.getElementById("empty"); if (emp && T.empty_html) emp.innerHTML = T.empty_html;
+  if (typeof refreshLabels === "function") refreshLabels();
+}
 
 /* ===== 드롭다운 채우기 ===== */
 const myLangEl = document.getElementById("myLang");
@@ -549,12 +661,12 @@ async function listen(fromLang, toLang, side, micBtn) {
   const text = await recognizeUntilSilence(fromLang);   // 멈추면 3초 뒤 종료
   micBtn.classList.remove("listening");
   if (!text) { setStatus("🔇 말소리가 안 들렸어요. 다시 눌러보세요."); return; }
-  setStatus(`🌐 ${L[toLang].name}로 번역 중…`);
+  setStatus(t("translating", L[toLang].name));
   try {
     const translated = await translate(text, fromLang, toLang);
     addBubble(side, fromLang, text, translated, toLang);
     speak(translated, toLang);
-    setStatus(`✅ ${L[toLang].name}로 전달했어요`);
+    setStatus(t("transferred", L[toLang].name));
   } catch (err) {
     setStatus(/USED ALL AVAILABLE/i.test(err.message)
       ? "⚠️ 오늘 무료 번역 사용량을 다 썼어요. 내일 다시 되거나, 자체 번역서버로 바꿀 수 있어요."
@@ -586,7 +698,7 @@ function recognizeUntilSilence(lang) {
     rec.lang = L[lang].stt; rec.interimResults = true; rec.continuous = true; rec.maxAlternatives = 1;
     let finalText = "", silenceTimer = null;
     const arm = () => { clearTimeout(silenceTimer); silenceTimer = setTimeout(() => { try { rec.stop(); } catch (_) {} }, SILENCE_MS); };
-    rec.onstart = () => { recognizing = true; setStatus(`🎙️ ${L[lang].flag} ${L[lang].name} 말하세요… (멈추면 ${SILENCE_MS / 1000}초 뒤 번역)`); };
+    rec.onstart = () => { recognizing = true; setStatus(t("listening", L[lang].flag + " " + L[lang].name)); };
     rec.onresult = (e) => {
       let interim = "";
       for (let i = e.resultIndex; i < e.results.length; i++) {
@@ -618,7 +730,7 @@ async function autoLoop() {
     const text = await recognizeUntilSilence(from);
     if (!autoMode) break;
     if (!text) { await sleep(200); continue; }         // 말소리 없으면 계속 대기
-    setStatus(`🌐 ${L[to].name}로 번역 중…`);
+    setStatus(t("translating", L[to].name));
     let translated;
     try { translated = await translate(text, from, to); }
     catch (e) {
@@ -656,14 +768,14 @@ async function autoStart() {
     return;
   }
   autoMode = true; turnLang = myLangEl.value;
-  autoBtn.textContent = "⏹ 자동 통역 정지";
+  autoBtn.textContent = t("auto_stop");
   autoBtn.classList.add("on");
   emptyEl.style.display = "none";
   autoLoop();
 }
 function autoStop() {
   autoMode = false;
-  autoBtn.textContent = "🎧 자동 통역 시작 (핸즈프리)";
+  autoBtn.textContent = t("auto_start");
   autoBtn.classList.remove("on");
   try { currentRec && currentRec.stop(); } catch (_) {}
   try { speechSynthesis.cancel(); } catch (_) {}
@@ -819,13 +931,13 @@ async function startCall() {
   const ok = await ensureMic();
   if (!ok) { setStatus("🎤 마이크 권한을 허용해 주세요."); return; }
   callActive = true;
-  gid("callBtn").textContent = "⏹ 통화 정지"; gid("callBtn").classList.add("on");
+  gid("callBtn").textContent = t("call_stop"); gid("callBtn").classList.add("on");
   if (autoBtn) autoBtn.disabled = true;
   callLoop();
 }
 function stopCall() {
   callActive = false;
-  gid("callBtn").textContent = "📞 통역 통화 시작"; gid("callBtn").classList.remove("on");
+  gid("callBtn").textContent = t("call_start"); gid("callBtn").classList.remove("on");
   try { currentRec && currentRec.stop(); } catch (_) {}
   try { speechSynthesis.cancel(); } catch (_) {}
   if (autoBtn) autoBtn.disabled = !SR;
@@ -862,6 +974,34 @@ document.getElementById("installBtn").onclick = async () => {
   installBanner.style.display = "none";
 };
 window.addEventListener("appinstalled", () => { installBanner.style.display = "none"; });
+
+/* =========================================================
+   첫 설정: 처음 켜면 언어 선택, 이후엔 저장된 언어로
+========================================================= */
+(function initI18n() {
+  let savedUi = null, savedMy = null;
+  try { savedUi = localStorage.getItem("uiLang"); savedMy = localStorage.getItem("myLang"); } catch (_) {}
+  if (savedMy && L[savedMy]) myLangEl.value = savedMy;
+  applyI18n(savedUi && I18N[savedUi] ? savedUi : "ko");
+
+  const ob = document.getElementById("onboarding");
+  if (savedUi && I18N[savedUi]) {
+    ob.style.display = "none";
+  } else {
+    ob.style.display = "flex";
+    ob.querySelectorAll("[data-uilang]").forEach(btn => {
+      btn.onclick = () => {
+        const ui = btn.getAttribute("data-uilang");
+        const my = btn.getAttribute("data-my");
+        try { localStorage.setItem("uiLang", ui); localStorage.setItem("myLang", my); } catch (_) {}
+        if (L[my]) myLangEl.value = my;
+        applyI18n(ui);
+        setStatus(t("ready"));
+        ob.style.display = "none";
+      };
+    });
+  }
+})();
 </script>
 </body>
 </html>
