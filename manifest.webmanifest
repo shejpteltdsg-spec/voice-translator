@@ -1,7 +1,7 @@
 {
-  "name": "Lingo · 번역 메신저",
-  "short_name": "Lingo",
-  "description": "언어가 달라도 막힘없이 — 실시간 번역 채팅·통화",
+  "name": "LINKO · 번역 메신저",
+  "short_name": "LINKO",
+  "description": "언어가 달라도 사람을 연결하는 실시간 번역 메신저",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
