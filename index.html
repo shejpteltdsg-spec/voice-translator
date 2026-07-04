@@ -190,6 +190,24 @@
   .swatch { height: 52px; border-radius: 12px; border: 3px solid transparent; cursor: pointer; box-shadow: var(--sh-sm); }
   .swatch.sel { border-color: #0f172a; }
 
+  /* ===== 헤더 설정 버튼 + 설정/프로필 모달 ===== */
+  .gear { margin-left: auto; flex: 0 0 auto; background: rgba(0,0,0,.08); border: none; width: 38px; height: 38px; border-radius: 12px; font-size: 18px; cursor: pointer; }
+  .settings { display: none; position: fixed; inset: 0; z-index: 90; align-items: center; justify-content: center; padding: 20px; background: rgba(0,0,0,.45); }
+  .settings.open { display: flex; }
+  .settings-card { background: #fff; border-radius: 22px; padding: 20px; width: 100%; max-width: 380px; max-height: 88vh; overflow-y: auto; box-shadow: 0 20px 50px rgba(0,0,0,.3); }
+  .settings-head { display: flex; align-items: center; justify-content: space-between; font-size: 18px; font-weight: 800; color: var(--ink); margin-bottom: 12px; }
+  .settings-x { background: none; border: none; font-size: 18px; cursor: pointer; color: var(--muted); }
+  .settings-label { font-size: 12px; font-weight: 700; color: var(--muted); margin: 12px 0 6px; }
+  .settings-input { width: 100%; font-family: inherit; font-size: 15px; border: 1.5px solid var(--line); border-radius: 12px; padding: 11px 12px; background: #fff; color: var(--ink); }
+  .settings-input:focus { outline: none; border-color: var(--brand); }
+  .avatar-row { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
+  .avatar-row button { font-size: 22px; border: 2px solid var(--line); background: #fff; border-radius: 12px; padding: 6px 0; cursor: pointer; }
+  .avatar-row button.sel { border-color: var(--brand); background: var(--brand-soft); }
+  .uilang-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .uilang-row button { font-family: inherit; font-size: 14px; font-weight: 700; border: 2px solid var(--line); background: #fff; color: var(--ink); border-radius: 12px; padding: 10px; cursor: pointer; }
+  .uilang-row button.sel { border-color: var(--brand); background: var(--brand-soft); color: var(--brand); }
+  .settings-save { width: 100%; margin-top: 18px; font-family: inherit; font-size: 16px; font-weight: 800; border: none; border-radius: 14px; padding: 14px; background: var(--kakao); color: var(--kakao-ink); cursor: pointer; }
+
   /* ===== 첫 설정 (언어 선택 온보딩) ===== */
   .onboarding { display: none; position: fixed; inset: 0; z-index: 100; align-items: center; justify-content: center; padding: 24px; background: linear-gradient(160deg, #FEE500, #FFD400); }
   .ob-card { background: #fff; border-radius: 26px; padding: 30px 22px; width: 100%; max-width: 360px; text-align: center; box-shadow: 0 22px 55px rgba(0,0,0,.25); }
@@ -218,12 +236,33 @@
   </div>
 
   <header>
-    <span class="logo">🌐</span>
+    <span class="logo" id="hdrAvatar">🌐</span>
     <div class="brandtext">
       <span class="wordmark">LINKO</span>
       <span class="tagline" data-i18n="tagline">언어가 달라도, 막힘없이</span>
     </div>
+    <button class="gear" id="settingsBtn" title="설정">⚙️</button>
   </header>
+
+  <div class="settings" id="settingsModal">
+    <div class="settings-card">
+      <div class="settings-head">
+        <span data-i18n="set_title">설정 · 내 프로필</span>
+        <button class="settings-x" id="settingsClose">✕</button>
+      </div>
+      <div class="settings-label" data-i18n="set_avatar">아바타</div>
+      <div class="avatar-row" id="avatarRow"></div>
+      <div class="settings-label" data-i18n="set_nick">닉네임</div>
+      <input class="settings-input" id="profNick" data-i18n-ph="set_nick_ph" placeholder="이름을 입력하세요" maxlength="20" autocomplete="off" />
+      <div class="settings-label" data-i18n="set_country">국가</div>
+      <select class="settings-input" id="profCountry"></select>
+      <div class="settings-label" data-i18n="set_birthday">생일</div>
+      <input class="settings-input" id="profBirthday" type="date" />
+      <div class="settings-label" data-i18n="set_uilang">앱 언어</div>
+      <div class="uilang-row" id="uilangRow"></div>
+      <button class="settings-save" id="profSave" data-i18n="set_save">저장</button>
+    </div>
+  </div>
 
   <div class="pickers">
     <div class="picker">
@@ -441,6 +480,7 @@ const I18N = {
     empty_html: '<div class="big">🎧</div>자동 통역을 켜고<br>번갈아 말하면 통역해요.',
     install_text: "📲 이 앱을 폰에 저장할 수 있어요", install_btn: "설치", ready: "준비됐어요",
     listening: "🎙️ {0} 말하세요…", translating: "🌐 {0} 번역 중…", transferred: "✅ {0} 전달 완료",
+    set_title: "설정 · 내 프로필", set_avatar: "아바타", set_nick: "닉네임", set_nick_ph: "이름을 입력하세요", set_country: "국가", set_birthday: "생일", set_uilang: "앱 언어", set_save: "저장",
   },
   en: {
     ob_title: "언어 · Language · 语言 · 言語", tagline: "No language barriers",
@@ -458,6 +498,7 @@ const I18N = {
     empty_html: '<div class="big">🎧</div>Turn on auto-interpret<br>and take turns speaking.',
     install_text: "📲 You can save this app to your phone", install_btn: "Install", ready: "Ready",
     listening: "🎙️ Speak in {0}…", translating: "🌐 Translating to {0}…", transferred: "✅ Sent in {0}",
+    set_title: "Settings · Profile", set_avatar: "Avatar", set_nick: "Nickname", set_nick_ph: "Enter your name", set_country: "Country", set_birthday: "Birthday", set_uilang: "App language", set_save: "Save",
   },
   zh: {
     ob_title: "언어 · Language · 语言 · 言語", tagline: "语言不通也能畅聊",
@@ -475,6 +516,7 @@ const I18N = {
     empty_html: '<div class="big">🎧</div>开启自动翻译<br>轮流说话即可翻译。',
     install_text: "📲 可以把这个应用保存到手机", install_btn: "安装", ready: "准备好了",
     listening: "🎙️ 请用{0}说话…", translating: "🌐 正在翻译成{0}…", transferred: "✅ 已用{0}发送",
+    set_title: "设置 · 个人资料", set_avatar: "头像", set_nick: "昵称", set_nick_ph: "输入名字", set_country: "国家", set_birthday: "生日", set_uilang: "应用语言", set_save: "保存",
   },
   ja: {
     ob_title: "언어 · Language · 语言 · 言語", tagline: "言葉が違っても、なめらかに",
@@ -492,6 +534,7 @@ const I18N = {
     empty_html: '<div class="big">🎧</div>自動通訳をオンにして<br>交互に話してください。',
     install_text: "📲 このアプリをスマホに保存できます", install_btn: "インストール", ready: "準備完了",
     listening: "🎙️ {0}で話してください…", translating: "🌐 {0}に翻訳中…", transferred: "✅ {0}で送信しました",
+    set_title: "設定 · プロフィール", set_avatar: "アバター", set_nick: "ニックネーム", set_nick_ph: "名前を入力", set_country: "国", set_birthday: "誕生日", set_uilang: "アプリの言語", set_save: "保存",
   },
 };
 let UI = "ko", T = I18N.ko;
@@ -1135,6 +1178,79 @@ function buildSwatches() {
     swatchesEl.appendChild(s);
   });
 }
+
+/* =========================================================
+   ⚙️ 설정 & 내 프로필 (내 폰에 저장 · 나중에 백엔드로 연결)
+========================================================= */
+const AVATARS = ["😀","😎","🥰","🐱","🐶","🦊","🐼","🐰","🦁","🐵","🐸","🦄","🌟","🌸","🍀","🎧"];
+const COUNTRIES = [
+  "🇰🇷 Korea","🇺🇸 USA","🇯🇵 Japan","🇨🇳 China","🇹🇼 Taiwan","🇻🇳 Vietnam","🇹🇭 Thailand","🇲🇲 Myanmar",
+  "🇵🇭 Philippines","🇮🇩 Indonesia","🇲🇾 Malaysia","🇸🇬 Singapore","🇮🇳 India","🇧🇩 Bangladesh","🇵🇰 Pakistan",
+  "🇳🇵 Nepal","🇱🇰 Sri Lanka","🇰🇭 Cambodia","🇱🇦 Laos","🇲🇳 Mongolia","🇫🇷 France","🇩🇪 Germany","🇪🇸 Spain",
+  "🇮🇹 Italy","🇬🇧 UK","🇵🇹 Portugal","🇳🇱 Netherlands","🇷🇺 Russia","🇺🇦 Ukraine","🇵🇱 Poland","🇹🇷 Turkey",
+  "🇧🇷 Brazil","🇲🇽 Mexico","🇨🇦 Canada","🇦🇺 Australia","🇪🇬 Egypt","🇸🇦 Saudi Arabia","🇦🇪 UAE","🇳🇬 Nigeria",
+  "🇰🇪 Kenya","🇪🇹 Ethiopia","🇿🇦 South Africa",
+];
+let profile = {};
+try { profile = JSON.parse(localStorage.getItem("profile") || "{}"); } catch (_) {}
+
+function applyProfileToHeader() {
+  const av = document.getElementById("hdrAvatar");
+  if (av) av.textContent = profile.avatar || "🌐";
+}
+
+const settingsModal = document.getElementById("settingsModal");
+const avatarRow = document.getElementById("avatarRow");
+const uilangRow = document.getElementById("uilangRow");
+const profNick = document.getElementById("profNick");
+const profCountry = document.getElementById("profCountry");
+const profBirthday = document.getElementById("profBirthday");
+COUNTRIES.forEach(c => profCountry.appendChild(new Option(c, c)));
+
+let tmpAvatar = "🌐";
+function buildAvatarRow() {
+  avatarRow.innerHTML = "";
+  AVATARS.forEach(e => {
+    const b = document.createElement("button");
+    b.textContent = e;
+    if (tmpAvatar === e) b.classList.add("sel");
+    b.onclick = () => { tmpAvatar = e; [...avatarRow.children].forEach(c => c.classList.remove("sel")); b.classList.add("sel"); };
+    avatarRow.appendChild(b);
+  });
+}
+function buildUilangRow() {
+  uilangRow.innerHTML = "";
+  [["ko", "🇰🇷 한국어"], ["en", "🇺🇸 English"], ["zh", "🇨🇳 中文"], ["ja", "🇯🇵 日本語"]].forEach(([code, label]) => {
+    const b = document.createElement("button");
+    b.textContent = label;
+    if (UI === code) b.classList.add("sel");
+    b.onclick = () => {
+      applyI18n(code);
+      try { localStorage.setItem("uiLang", code); } catch (_) {}
+      [...uilangRow.children].forEach(c => c.classList.remove("sel")); b.classList.add("sel");
+    };
+    uilangRow.appendChild(b);
+  });
+}
+function openSettings() {
+  tmpAvatar = profile.avatar || "🌐";
+  profNick.value = profile.nick || "";
+  profCountry.value = profile.country || "";
+  profBirthday.value = profile.birthday || "";
+  buildAvatarRow(); buildUilangRow();
+  settingsModal.classList.add("open");
+}
+function saveProfile() {
+  profile = { avatar: tmpAvatar, nick: profNick.value.trim(), country: profCountry.value, birthday: profBirthday.value };
+  try { localStorage.setItem("profile", JSON.stringify(profile)); } catch (_) {}
+  applyProfileToHeader();
+  settingsModal.classList.remove("open");
+}
+document.getElementById("settingsBtn").onclick = openSettings;
+document.getElementById("settingsClose").onclick = () => settingsModal.classList.remove("open");
+document.getElementById("profSave").onclick = saveProfile;
+settingsModal.onclick = (e) => { if (e.target === settingsModal) settingsModal.classList.remove("open"); };
+applyProfileToHeader();
 
 /* =========================================================
    첫 설정: 처음 켜면 언어 선택, 이후엔 저장된 언어로
