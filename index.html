@@ -37,6 +37,12 @@
     -webkit-user-select: none; user-select: none;
   }
 
+  /* 넓은 화면(컴퓨터)에서는 폰처럼 가운데 프레임으로 */
+  @media (min-width: 500px) {
+    html { min-height: 100%; background: linear-gradient(135deg, #d9e2ff 0%, #ece3ff 50%, #ffe3f1 100%); }
+    body { max-width: 430px; margin: 0 auto; box-shadow: 0 10px 60px rgba(40,25,90,.25); border-radius: 14px; overflow: hidden; }
+  }
+
   /* ===== 브랜드 헤더 ===== */
   header {
     display: flex; align-items: center; gap: 11px;
