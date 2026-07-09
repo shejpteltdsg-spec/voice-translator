@@ -237,6 +237,21 @@
   .fsection { padding: 16px 14px; }
   .fhead { font-size: 14px; font-weight: 800; color: var(--ink); margin-bottom: 10px; }
   .friend-empty { font-size: 13px; color: var(--muted); line-height: 1.7; text-align: center; padding: 22px; background: var(--card); border: 1px solid var(--line); border-radius: var(--r-sm); }
+  .mycode { background: var(--brand-soft); border-radius: var(--r-sm); padding: 12px 14px; margin-bottom: 12px; }
+  .mycode-label { font-size: 12px; font-weight: 700; color: var(--brand); margin-bottom: 6px; }
+  .mycode-row { display: flex; align-items: center; gap: 8px; }
+  .mycode-val { flex: 1; min-width: 0; font-size: 13px; font-weight: 700; color: var(--ink); background: #fff; border-radius: 8px; padding: 8px 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mycode-copy { flex: 0 0 auto; font-family: inherit; font-size: 12px; font-weight: 700; border: none; background: var(--brand); color: #fff; border-radius: 8px; padding: 9px 12px; cursor: pointer; }
+  .addfriend { display: flex; gap: 8px; margin-bottom: 6px; }
+  .addfriend .cinput { margin: 0; }
+  .cbtn.addfr { flex: 0 0 auto; width: auto; padding: 12px 14px; background: var(--grad); }
+  .friendlist { display: flex; flex-direction: column; gap: 8px; }
+  .friend-item { display: flex; align-items: center; gap: 12px; background: var(--card); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 10px 12px; box-shadow: var(--sh-sm); }
+  .fi-av { width: 46px; height: 46px; border-radius: 50%; background: var(--brand-soft); display: grid; place-items: center; font-size: 24px; overflow: hidden; flex: 0 0 auto; }
+  .fi-av img { width: 100%; height: 100%; object-fit: cover; }
+  .fi-info { min-width: 0; }
+  .fi-nick { font-size: 15px; font-weight: 800; color: var(--ink); }
+  .fi-country { font-size: 12px; color: var(--muted); margin-top: 2px; }
 
   /* ===== 헤더 설정 버튼 + 설정/프로필 모달 ===== */
   .gear { margin-left: auto; flex: 0 0 auto; background: rgba(0,0,0,.08); border: none; width: 38px; height: 38px; border-radius: 12px; font-size: 18px; cursor: pointer; }
@@ -335,8 +350,20 @@
     <section class="tab" id="tab-friends">
       <div class="profcard" id="profCard"></div>
       <div class="fsection">
-        <div class="fhead">👥 친구</div>
-        <div class="friend-empty">친구 목록은 곧 추가돼요.<br>지금은 💬 <b>채팅</b> 탭에서 같은 방 이름으로 팀과 대화할 수 있어요!</div>
+        <div class="mycode">
+          <div class="mycode-label">🔑 내 친구 코드 (친구에게 알려주세요)</div>
+          <div class="mycode-row">
+            <div class="mycode-val" id="myCode">…</div>
+            <button class="mycode-copy" id="myCodeCopy">📋 복사</button>
+          </div>
+        </div>
+        <div class="addfriend">
+          <input id="friendCodeInput" class="cinput" placeholder="친구 코드 입력" autocomplete="off" />
+          <button class="cbtn addfr" id="addFriendBtn">➕ 친구 추가</button>
+        </div>
+        <div class="cnote" id="friendStatus"></div>
+        <div class="fhead">👥 내 친구</div>
+        <div class="friendlist" id="friendList"><div class="friend-empty">아직 친구가 없어요.<br>위에 친구 코드를 입력해서 추가해보세요!</div></div>
       </div>
       <div class="themebar">
         <button class="themetoggle" id="themeToggle">🎨 배경 꾸미기 ▾</button>
@@ -1434,6 +1461,7 @@ function saveProfile() {
   try { localStorage.setItem("profile", JSON.stringify(profile)); } catch (_) {}
   applyProfileToHeader();
   if (typeof renderProfCard === "function") renderProfCard();
+  if (typeof syncProfile === "function") syncProfile();
   settingsModal.classList.remove("open");
 }
 document.getElementById("settingsBtn").onclick = openSettings;
@@ -1592,6 +1620,64 @@ document.getElementById("photoInput").onchange = async (e) => {
 };
 
 /* =========================================================
+   👥 친구 (Supabase profiles/friends)
+========================================================= */
+function setFriendStatus(m) { const el = document.getElementById("friendStatus"); if (el) el.textContent = m || ""; }
+async function syncProfile() {
+  try {
+    const sb = await ensureSbClient();
+    const p = profile || {};
+    if (!p.nick && !p.country) return;
+    await sb.from("profiles").upsert({ uid: myUid, nick: p.nick || "", avatar: p.avatar || "🙂", photo: p.photo || "", country: p.country || "", lang: myLangEl.value });
+  } catch (_) {}
+}
+async function addFriend(code) {
+  code = (code || "").trim();
+  if (!code) return;
+  if (code === myUid) { setFriendStatus("본인은 추가할 수 없어요."); return; }
+  setFriendStatus("찾는 중…");
+  try {
+    const sb = await ensureSbClient();
+    const res = await sb.from("profiles").select("uid,nick").eq("uid", code).maybeSingle();
+    if (!res.data) { setFriendStatus("그 코드의 사용자를 찾을 수 없어요. (상대가 프로필을 저장했는지 확인)"); return; }
+    const ins = await sb.from("friends").upsert({ uid: myUid, friend_uid: code });
+    if (ins.error) { setFriendStatus("추가 실패: " + ins.error.message); return; }
+    setFriendStatus((res.data.nick || "친구") + " 님을 추가했어요! 🎉");
+    document.getElementById("friendCodeInput").value = "";
+    loadFriends();
+  } catch (e) { setFriendStatus("오류: " + (e.message || e)); }
+}
+async function loadFriends() {
+  const listEl = document.getElementById("friendList");
+  if (!listEl) return;
+  try {
+    const sb = await ensureSbClient();
+    const fr = await sb.from("friends").select("friend_uid").eq("uid", myUid);
+    const ids = (fr.data || []).map(f => f.friend_uid);
+    if (!ids.length) { listEl.innerHTML = '<div class="friend-empty">아직 친구가 없어요.<br>위에 친구 코드를 입력해서 추가해보세요!</div>'; return; }
+    const profs = await sb.from("profiles").select("*").in("uid", ids);
+    const rows = profs.data || [];
+    listEl.innerHTML = "";
+    if (!rows.length) { listEl.innerHTML = '<div class="friend-empty">친구 프로필을 불러오지 못했어요.</div>'; return; }
+    rows.forEach(p => {
+      const av = p.photo ? `<img src="${p.photo}" alt="">` : (p.avatar || "🙂");
+      const flag = p.country ? p.country.split(" ")[0] : "";
+      const item = document.createElement("div");
+      item.className = "friend-item";
+      item.innerHTML = `<div class="fi-av">${av}</div><div class="fi-info"><div class="fi-nick">${escapeHtml(p.nick || "익명")} ${flag}</div><div class="fi-country">${escapeHtml(p.country || "")}</div></div>`;
+      listEl.appendChild(item);
+    });
+  } catch (e) { listEl.innerHTML = '<div class="friend-empty">친구 목록 로드 실패 — 인터넷을 확인하세요.</div>'; }
+}
+(function initFriends() {
+  const mc = document.getElementById("myCode"); if (mc) mc.textContent = myUid;
+  const cp = document.getElementById("myCodeCopy");
+  if (cp) cp.onclick = () => { try { navigator.clipboard.writeText(myUid); setFriendStatus("코드를 복사했어요!"); } catch (_) {} };
+  const ab = document.getElementById("addFriendBtn");
+  if (ab) ab.onclick = () => addFriend(document.getElementById("friendCodeInput").value);
+})();
+
+/* =========================================================
    📱 하단 탭 전환 (친구 · 채팅 · 전화 · 번역) + 프로필 카드
 ========================================================= */
 function renderProfCard() {
@@ -1609,7 +1695,7 @@ function switchTab(name) {
   document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
   const tab = document.getElementById("tab-" + name); if (tab) tab.classList.add("active");
   document.querySelectorAll(".tabbtn").forEach(b => b.classList.toggle("active", b.getAttribute("data-tab") === name));
-  if (name === "friends") renderProfCard();
+  if (name === "friends") { renderProfCard(); syncProfile(); loadFriends(); }
 }
 document.querySelectorAll(".tabbtn").forEach(b => { b.onclick = () => switchTab(b.getAttribute("data-tab")); });
 renderProfCard();
