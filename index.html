@@ -91,7 +91,7 @@
   .status { text-align: center; font-size: 13px; color: var(--muted); font-weight: 600; padding: 7px 12px; min-height: 30px; }
 
   /* ===== 마이크 버튼 ===== */
-  .mics { display: flex; gap: 10px; padding: 10px 14px calc(14px + env(safe-area-inset-bottom)); }
+  .mics { display: flex; gap: 10px; padding: 10px 14px 12px; }
   .mic {
     flex: 1; font-family: inherit; border: none; border-radius: var(--r);
     padding: 14px 6px; cursor: pointer; color: #fff;
@@ -196,6 +196,29 @@
   .cloudpanel { display: none; background: var(--card); border: 1px solid var(--line); border-radius: var(--r-sm); margin-top: 8px; padding: 14px; box-shadow: var(--sh); }
   .cloudpanel.open { display: block; }
 
+  /* ===== 하단 탭 구조 ===== */
+  .tabwrap { flex: 1; min-height: 0; overflow: hidden; }
+  .tab { display: none; height: 100%; flex-direction: column; }
+  .tab.active { display: flex; }
+  #tab-friends { overflow-y: auto; }
+  .tab .log { min-height: 0; }
+  .tabnav { display: flex; flex: 0 0 auto; background: var(--card); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom); }
+  .tabbtn { flex: 1; background: none; border: none; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 0 7px; cursor: pointer; color: var(--muted); }
+  .tabbtn .tabi { font-size: 22px; }
+  .tabbtn .tabl { font-size: 11px; font-weight: 700; }
+  .tabbtn.active { color: var(--brand); }
+  .tabbtn.active .tabl { color: var(--brand); }
+
+  /* ===== 친구/프로필 탭 ===== */
+  .profcard { background: var(--grad); color: #fff; padding: 26px 20px 24px; text-align: center; }
+  .profcard .pc-avatar { font-size: 58px; line-height: 1; }
+  .profcard .pc-nick { font-size: 21px; font-weight: 800; margin-top: 8px; }
+  .profcard .pc-country { font-size: 13px; opacity: .92; margin-top: 3px; }
+  .profcard .pc-edit { margin-top: 14px; background: rgba(255,255,255,.22); border: none; color: #fff; font-family: inherit; font-weight: 700; font-size: 13px; padding: 9px 20px; border-radius: 999px; cursor: pointer; }
+  .fsection { padding: 16px 14px; }
+  .fhead { font-size: 14px; font-weight: 800; color: var(--ink); margin-bottom: 10px; }
+  .friend-empty { font-size: 13px; color: var(--muted); line-height: 1.7; text-align: center; padding: 22px; background: var(--card); border: 1px solid var(--line); border-radius: var(--r-sm); }
+
   /* ===== 헤더 설정 버튼 + 설정/프로필 모달 ===== */
   .gear { margin-left: auto; flex: 0 0 auto; background: rgba(0,0,0,.08); border: none; width: 38px; height: 38px; border-radius: 12px; font-size: 18px; cursor: pointer; }
   .settings { display: none; position: fixed; inset: 0; z-index: 90; align-items: center; justify-content: center; padding: 20px; background: rgba(0,0,0,.45); }
@@ -270,121 +293,143 @@
     </div>
   </div>
 
-  <div class="pickers">
-    <div class="picker">
-      <label data-i18n="lbl_my">🙋 내 언어</label>
-      <select id="myLang"></select>
-    </div>
-    <button class="swap" id="swap" title="swap">⇄</button>
-    <div class="picker">
-      <label data-i18n="lbl_their">🗣️ 상대 언어</label>
-      <select id="theirLang"></select>
-    </div>
-  </div>
+  <main class="tabwrap">
 
-  <div class="voicebar">
-    <button class="voicetoggle" id="voiceToggle" data-i18n="voice_toggle">🔊 목소리 설정 (남 / 여 · 여러 목소리) ▾</button>
-    <div class="voicepanel" id="voicePanel"></div>
-  </div>
+    <!-- 👤 친구 · 프로필 -->
+    <section class="tab" id="tab-friends">
+      <div class="profcard" id="profCard"></div>
+      <div class="fsection">
+        <div class="fhead">👥 친구</div>
+        <div class="friend-empty">친구 목록은 곧 추가돼요.<br>지금은 💬 <b>채팅</b> 탭에서 같은 방 이름으로 팀과 대화할 수 있어요!</div>
+      </div>
+      <div class="themebar">
+        <button class="themetoggle" id="themeToggle">🎨 배경 꾸미기 ▾</button>
+        <div class="themepanel" id="themePanel"><div class="swatches" id="swatches"></div></div>
+      </div>
+      <div class="install" id="install">
+        <span data-i18n="install_text">📲 이 앱을 폰에 저장할 수 있어요</span>
+        <button id="installBtn" data-i18n="install_btn">설치</button>
+      </div>
+    </section>
 
-  <div class="callbar">
-    <button class="calltoggle" id="callToggle" data-i18n="call_toggle">📞 멀리 있는 사람과 통역 통화 ▾</button>
-    <div class="callpanel" id="callPanel">
-      <div id="callSetup">
-        <div class="callrow">
-          <button class="cbtn host" id="hostBtn" data-i18n="host_btn">🆕 방 만들기</button>
-          <button class="cbtn join" id="joinBtn" data-i18n="join_btn">🔑 코드로 참여</button>
+    <!-- 💬 채팅 -->
+    <section class="tab" id="tab-chat">
+      <div class="cloudbar">
+        <button class="cloudtoggle" id="cloudToggle">☁️ 저장되는 팀 채팅 (어디서나·서버) ▾</button>
+        <div class="cloudpanel open" id="cloudPanel">
+          <div id="cloudSetup">
+            <input id="cloudRoom" class="cinput" placeholder="방 이름" value="team" maxlength="20" autocomplete="off" />
+            <button class="cbtn" id="cloudJoinBtn" style="width:100%;margin-top:8px">입장하기</button>
+            <div class="cnote">같은 <b>방 이름</b>에 들어간 사람끼리 대화해요.<br>대화가 <b>저장</b>되고, 서로 다른 통신망이어도 잘 됩니다.</div>
+            <div class="cnote" id="cloudStatus"></div>
+          </div>
+          <div id="cloudLive" style="display:none">
+            <div class="clive">☁️ <span id="cloudRoomName"></span> 방 접속 중</div>
+            <button class="cbtn hang" id="cloudLeaveBtn">나가기</button>
+          </div>
         </div>
-        <div id="hostArea" style="display:none">
-          <div class="ccode" id="roomCode">…</div>
-          <button class="ccopy" id="copyCode" data-i18n="copy_code">📋 코드 복사</button>
-          <div class="cnote" data-i18n="room_note">이 코드를 상대에게 알려주세요. 상대가 참여하면 자동으로 연결돼요.</div>
+      </div>
+      <div class="log" id="cloudLog">
+        <div class="empty" id="cloudEmpty"><div class="big">💬</div>방에 입장해서<br>팀과 대화를 시작하세요.</div>
+      </div>
+      <div class="chatbar" id="cloudChatBar">
+        <input id="cloudInput" class="chatinput" placeholder="메시지 입력…" data-i18n-ph="chat_ph" autocomplete="off" />
+        <button id="cloudSend" class="chatsend" data-i18n="chat_send">보내기</button>
+      </div>
+    </section>
+
+    <!-- 📞 전화 -->
+    <section class="tab" id="tab-call">
+      <div class="callbar">
+        <button class="calltoggle" id="callToggle" data-i18n="call_toggle">📞 멀리 있는 사람과 통역 통화 ▾</button>
+        <div class="callpanel open" id="callPanel">
+          <div id="callSetup">
+            <div class="callrow">
+              <button class="cbtn host" id="hostBtn" data-i18n="host_btn">🆕 방 만들기</button>
+              <button class="cbtn join" id="joinBtn" data-i18n="join_btn">🔑 코드로 참여</button>
+            </div>
+            <div id="hostArea" style="display:none">
+              <div class="ccode" id="roomCode">…</div>
+              <button class="ccopy" id="copyCode" data-i18n="copy_code">📋 코드 복사</button>
+              <div class="cnote" data-i18n="room_note">이 코드를 상대에게 알려주세요. 상대가 참여하면 자동으로 연결돼요.</div>
+            </div>
+            <div id="joinArea" style="display:none">
+              <input id="codeInput" class="cinput" placeholder="코드" data-i18n-ph="code_ph" maxlength="5" autocapitalize="characters" autocomplete="off" />
+              <button class="cbtn" id="connectBtn" data-i18n="connect_btn" style="width:100%;margin-top:8px">연결하기</button>
+            </div>
+            <div class="cnote" id="callStatus"></div>
+          </div>
+          <div id="callLive" style="display:none">
+            <div class="clive"><span data-i18n="connected_label">🟢 연결됨 · 상대 언어:</span> <span id="peerLangLabel">?</span></div>
+            <button class="cbtn call" id="callBtn" data-i18n="call_start">📞 통역 통화 시작</button>
+            <button class="cbtn hang" id="hangBtn" data-i18n="hang_btn">연결 끊기</button>
+            <div class="cnote" data-i18n="earbud_note">🎧 이어폰을 쓰면 소리 겹침 없이 깔끔해요.</div>
+          </div>
         </div>
-        <div id="joinArea" style="display:none">
-          <input id="codeInput" class="cinput" placeholder="코드" data-i18n-ph="code_ph" maxlength="5" autocapitalize="characters" autocomplete="off" />
-          <button class="cbtn" id="connectBtn" data-i18n="connect_btn" style="width:100%;margin-top:8px">연결하기</button>
+      </div>
+      <div class="log" id="callLog">
+        <div class="empty" id="callEmpty"><div class="big">📞</div>방을 만들거나 코드로 참여해<br>통역 통화를 시작하세요.</div>
+      </div>
+      <div class="chatlangbar" id="chatLangBar">
+        <span data-i18n="chat_lang_label">💬 내가 볼 번역 언어</span>
+        <select id="chatLang" class="chatlang"></select>
+      </div>
+      <div class="chatbar" id="chatBar">
+        <input id="chatInput" class="chatinput" placeholder="메시지 입력…" data-i18n-ph="chat_ph" autocomplete="off" />
+        <button id="chatSend" class="chatsend" data-i18n="chat_send">보내기</button>
+      </div>
+    </section>
+
+    <!-- 🌐 번역 -->
+    <section class="tab" id="tab-translate">
+      <div class="pickers">
+        <div class="picker">
+          <label data-i18n="lbl_my">🙋 내 언어</label>
+          <select id="myLang"></select>
         </div>
-        <div class="cnote" id="callStatus"></div>
+        <button class="swap" id="swap" title="swap">⇄</button>
+        <div class="picker">
+          <label data-i18n="lbl_their">🗣️ 상대 언어</label>
+          <select id="theirLang"></select>
+        </div>
       </div>
-      <div id="callLive" style="display:none">
-        <div class="clive"><span data-i18n="connected_label">🟢 연결됨 · 상대 언어:</span> <span id="peerLangLabel">?</span></div>
-        <button class="cbtn call" id="callBtn" data-i18n="call_start">📞 통역 통화 시작</button>
-        <button class="cbtn hang" id="hangBtn" data-i18n="hang_btn">연결 끊기</button>
-        <div class="cnote" data-i18n="earbud_note">🎧 이어폰을 쓰면 소리 겹침 없이 깔끔해요.</div>
+      <div class="voicebar">
+        <button class="voicetoggle" id="voiceToggle" data-i18n="voice_toggle">🔊 목소리 설정 (남 / 여 · 여러 목소리) ▾</button>
+        <div class="voicepanel" id="voicePanel"></div>
       </div>
-    </div>
-  </div>
-
-  <div class="cloudbar">
-    <button class="cloudtoggle" id="cloudToggle">☁️ 저장되는 팀 채팅 (어디서나·서버) ▾</button>
-    <div class="cloudpanel" id="cloudPanel">
-      <div id="cloudSetup">
-        <input id="cloudRoom" class="cinput" placeholder="방 이름" value="team" maxlength="20" autocomplete="off" />
-        <button class="cbtn" id="cloudJoinBtn" style="width:100%;margin-top:8px">입장하기</button>
-        <div class="cnote">같은 <b>방 이름</b>에 들어간 사람끼리 대화해요.<br>대화가 <b>저장</b>되고, 서로 다른 통신망이어도 잘 됩니다.</div>
-        <div class="cnote" id="cloudStatus"></div>
+      <div class="log" id="log">
+        <div class="empty" id="empty">
+          <div class="big">🎧</div>
+          <b>자동 통역 시작</b>을 누르고<br>
+          번갈아 말하면 알아서 통역해요.
+        </div>
       </div>
-      <div id="cloudLive" style="display:none">
-        <div class="clive">☁️ <span id="cloudRoomName"></span> 방 접속 중</div>
-        <button class="cbtn hang" id="cloudLeaveBtn">나가기</button>
+      <div class="status" id="status" data-i18n="ready">준비됐어요</div>
+      <div class="autowrap">
+        <button class="auto" id="autoBtn" data-i18n="auto_start">🎧 자동 통역 시작 (핸즈프리)</button>
       </div>
-    </div>
-  </div>
+      <div class="mics">
+        <button class="mic them" id="micThem">
+          <span class="icon">🎤</span>
+          <span class="label" id="themLabel">상대</span>
+          <span class="sub" data-i18n="mic_them_sub">상대가 말해요</span>
+        </button>
+        <button class="mic me" id="micMe">
+          <span class="icon">🎤</span>
+          <span class="label" id="meLabel">나</span>
+          <span class="sub" data-i18n="mic_me_sub">내가 말해요</span>
+        </button>
+      </div>
+    </section>
 
-  <div class="themebar">
-    <button class="themetoggle" id="themeToggle">🎨 배경 꾸미기 ▾</button>
-    <div class="themepanel" id="themePanel">
-      <div class="swatches" id="swatches"></div>
-    </div>
-  </div>
+  </main>
 
-  <div class="install" id="install">
-    <span data-i18n="install_text">📲 이 앱을 폰에 저장할 수 있어요</span>
-    <button id="installBtn" data-i18n="install_btn">설치</button>
-  </div>
-
-  <div class="log" id="log">
-    <div class="empty" id="empty">
-      <div class="big">🎧</div>
-      <b>자동 통역 시작</b>을 누르고<br>
-      번갈아 말하면 알아서 통역해요.<br>
-      <span style="font-size:13px">(스피커폰 통화 옆에 켜두세요)</span>
-    </div>
-  </div>
-
-  <div class="status" id="status" data-i18n="ready">준비됐어요</div>
-
-  <div class="chatlangbar" id="chatLangBar">
-    <span data-i18n="chat_lang_label">💬 내가 볼 번역 언어</span>
-    <select id="chatLang" class="chatlang"></select>
-  </div>
-
-  <div class="chatbar" id="chatBar">
-    <input id="chatInput" class="chatinput" placeholder="메시지 입력…" data-i18n-ph="chat_ph" autocomplete="off" />
-    <button id="chatSend" class="chatsend" data-i18n="chat_send">보내기</button>
-  </div>
-
-  <div class="chatbar" id="cloudChatBar">
-    <input id="cloudInput" class="chatinput" placeholder="메시지 입력…" data-i18n-ph="chat_ph" autocomplete="off" />
-    <button id="cloudSend" class="chatsend" data-i18n="chat_send">보내기</button>
-  </div>
-
-  <div class="autowrap">
-    <button class="auto" id="autoBtn" data-i18n="auto_start">🎧 자동 통역 시작 (핸즈프리)</button>
-  </div>
-
-  <div class="mics">
-    <button class="mic them" id="micThem">
-      <span class="icon">🎤</span>
-      <span class="label" id="themLabel">상대</span>
-      <span class="sub" data-i18n="mic_them_sub">상대가 말해요</span>
-    </button>
-    <button class="mic me" id="micMe">
-      <span class="icon">🎤</span>
-      <span class="label" id="meLabel">나</span>
-      <span class="sub" data-i18n="mic_me_sub">내가 말해요</span>
-    </button>
-  </div>
+  <nav class="tabnav">
+    <button class="tabbtn" data-tab="friends"><span class="tabi">👤</span><span class="tabl">친구</span></button>
+    <button class="tabbtn active" data-tab="chat"><span class="tabi">💬</span><span class="tabl">채팅</span></button>
+    <button class="tabbtn" data-tab="call"><span class="tabi">📞</span><span class="tabl">전화</span></button>
+    <button class="tabbtn" data-tab="translate"><span class="tabi">🌐</span><span class="tabl">번역</span></button>
+  </nav>
 
 <script>
 /* =========================================================
@@ -632,6 +677,23 @@ function addBubble(side, whoLang, original, translated, speakLang) {
   b.querySelector(".replay").onclick = () => speak(translated, speakLang);
   logEl.appendChild(b);
   logEl.scrollTop = logEl.scrollHeight;
+}
+
+// 전화(P2P) 전용 말풍선 → #callLog (전화 탭)
+const callLogEl = document.getElementById("callLog");
+const callEmptyEl = document.getElementById("callEmpty");
+function addCallBubble(side, whoLang, original, translated, speakLang) {
+  if (callEmptyEl) callEmptyEl.style.display = "none";
+  const b = document.createElement("div");
+  b.className = "bubble " + side;
+  b.innerHTML =
+    `<div class="who">${L[whoLang].flag} ${escapeHtml(L[whoLang].name)}</div>` +
+    `<div class="orig" dir="auto">${escapeHtml(original)}</div>` +
+    `<div class="trans" dir="auto">${escapeHtml(translated)}</div>` +
+    `<div class="replay">🔊 다시 듣기</div>`;
+  b.querySelector(".replay").onclick = () => speak(translated, speakLang);
+  callLogEl.appendChild(b);
+  callLogEl.scrollTop = callLogEl.scrollHeight;
 }
 
 /* =========================================================
@@ -1079,13 +1141,13 @@ async function onCallData(msg) {
     return;
   }
   if (msg.type === "chat") {   // 상대가 보낸 채팅 (이미 내 언어로 번역돼 옴) — 자동 낭독은 안 함
-    addBubble("them", msg.from, msg.orig, msg.tr, myLangEl.value);
+    addCallBubble("them", msg.from, msg.orig, msg.tr, myLangEl.value);
     return;
   }
   if (msg.type === "speech") {
     speaking = true;
     try { currentRec && currentRec.stop(); } catch (_) {}
-    addBubble("them", msg.from, msg.orig, msg.tr, myLangEl.value);
+    addCallBubble("them", msg.from, msg.orig, msg.tr, myLangEl.value);
     await speakThen(msg.tr, myLangEl.value);   // 이미 내 언어로 번역돼서 옴
     speaking = false;
   }
@@ -1100,7 +1162,7 @@ async function sendChat() {
   let tr = text;
   try { if (peerLang) tr = await translate(text, myLangEl.value, peerLang); } catch (_) {}
   conn.send({ type: "chat", orig: text, tr: tr, from: myLangEl.value });
-  addBubble("me", myLangEl.value, text, tr, peerLang || myLangEl.value);
+  addCallBubble("me", myLangEl.value, text, tr, peerLang || myLangEl.value);
 }
 async function callLoop() {
   while (callActive) {
@@ -1111,7 +1173,7 @@ async function callLoop() {
     let tr = text;
     try { if (peerLang) tr = await translate(text, myLangEl.value, peerLang); } catch (_) {}
     if (conn && conn.open) conn.send({ type: "speech", orig: text, tr: tr, from: myLangEl.value });
-    addBubble("me", myLangEl.value, text, tr, peerLang || myLangEl.value);
+    addCallBubble("me", myLangEl.value, text, tr, peerLang || myLangEl.value);
   }
 }
 async function startCall() {
@@ -1271,6 +1333,7 @@ function saveProfile() {
   profile = { avatar: tmpAvatar, nick: profNick.value.trim(), country: profCountry.value, birthday: profBirthday.value };
   try { localStorage.setItem("profile", JSON.stringify(profile)); } catch (_) {}
   applyProfileToHeader();
+  if (typeof renderProfCard === "function") renderProfCard();
   settingsModal.classList.remove("open");
 }
 document.getElementById("settingsBtn").onclick = openSettings;
@@ -1297,8 +1360,10 @@ async function ensureSbClient() {
   sbClient = window.supabase.createClient(SB_URL, SB_KEY);
   return sbClient;
 }
+const cloudLogEl = document.getElementById("cloudLog");
+const cloudEmptyEl = document.getElementById("cloudEmpty");
 function addCloudBubble(m, mine) {
-  emptyEl.style.display = "none";
+  if (cloudEmptyEl) cloudEmptyEl.style.display = "none";
   const b = document.createElement("div");
   b.className = "bubble " + (mine ? "me" : "them");
   const flag = m.country ? m.country.split(" ")[0] : "";
@@ -1309,7 +1374,7 @@ function addCloudBubble(m, mine) {
     ((m.tr && m.tr !== m.orig) ? `<div class="trans" dir="auto">${escapeHtml(m.tr)}</div>` : "") +
     `<div class="replay">🔊</div>`;
   b.querySelector(".replay").onclick = () => speak(m.tr || m.orig, myLangEl.value);
-  logEl.appendChild(b); logEl.scrollTop = logEl.scrollHeight;
+  cloudLogEl.appendChild(b); cloudLogEl.scrollTop = cloudLogEl.scrollHeight;
 }
 async function handleCloudMsg(m) {
   if (!m || cloudSeen.has(m.id)) return;
@@ -1328,7 +1393,7 @@ async function joinCloud(room) {
   document.getElementById("cloudLive").style.display = "block";
   document.getElementById("cloudRoomName").textContent = room;
   document.getElementById("cloudChatBar").classList.add("show");
-  logEl.innerHTML = "";
+  cloudLogEl.innerHTML = "";
   if (cloudChannel) { try { sb.removeChannel(cloudChannel); } catch (_) {} }
   cloudChannel = sb.channel("room-" + room + "-" + Date.now())
     .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: "room=eq." + room }, p => handleCloudMsg(p.new))
@@ -1363,6 +1428,29 @@ document.getElementById("cloudJoinBtn").onclick = () => { const r = (document.ge
 document.getElementById("cloudLeaveBtn").onclick = leaveCloud;
 document.getElementById("cloudSend").onclick = sendCloud;
 document.getElementById("cloudInput").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); sendCloud(); } });
+
+/* =========================================================
+   📱 하단 탭 전환 (친구 · 채팅 · 전화 · 번역) + 프로필 카드
+========================================================= */
+function renderProfCard() {
+  const el = document.getElementById("profCard"); if (!el) return;
+  const p = profile || {};
+  el.innerHTML =
+    `<div class="pc-avatar">${p.avatar || "🙂"}</div>` +
+    `<div class="pc-nick">${escapeHtml(p.nick || "이름 없음")}</div>` +
+    `<div class="pc-country">${p.country ? escapeHtml(p.country) : "국가 미설정"}</div>` +
+    `<button class="pc-edit" id="pcEdit">✏️ 프로필 편집</button>`;
+  const be = document.getElementById("pcEdit"); if (be) be.onclick = openSettings;
+}
+function switchTab(name) {
+  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  const tab = document.getElementById("tab-" + name); if (tab) tab.classList.add("active");
+  document.querySelectorAll(".tabbtn").forEach(b => b.classList.toggle("active", b.getAttribute("data-tab") === name));
+  if (name === "friends") renderProfCard();
+}
+document.querySelectorAll(".tabbtn").forEach(b => { b.onclick = () => switchTab(b.getAttribute("data-tab")); });
+renderProfCard();
+switchTab("chat");
 
 /* =========================================================
    첫 설정: 처음 켜면 언어 선택, 이후엔 저장된 언어로
