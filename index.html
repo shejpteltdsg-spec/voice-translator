@@ -254,7 +254,15 @@
   .uilang-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
   .uilang-row button { font-family: inherit; font-size: 14px; font-weight: 700; border: 2px solid var(--line); background: #fff; color: var(--ink); border-radius: 12px; padding: 10px; cursor: pointer; }
   .uilang-row button.sel { border-color: var(--brand); background: var(--brand-soft); color: var(--brand); }
-  .settings-save { width: 100%; margin-top: 18px; font-family: inherit; font-size: 16px; font-weight: 800; border: none; border-radius: 14px; padding: 14px; background: var(--kakao); color: var(--kakao-ink); cursor: pointer; }
+  .settings-save { width: 100%; margin-top: 16px; font-family: inherit; font-size: 16px; font-weight: 800; border: none; border-radius: 14px; padding: 14px; background: var(--kakao); color: var(--kakao-ink); cursor: pointer; }
+  .photo-pick { display: flex; align-items: center; gap: 10px; }
+  .photo-prev { width: 56px; height: 56px; border-radius: 50%; background: var(--brand-soft); display: grid; place-items: center; font-size: 30px; overflow: hidden; flex: 0 0 auto; }
+  .photo-prev img { width: 100%; height: 100%; object-fit: cover; }
+  .photo-btn { font-family: inherit; font-size: 13px; font-weight: 700; background: var(--sky); color: #fff; border: none; border-radius: 10px; padding: 10px 14px; cursor: pointer; }
+  .photo-clear { font-family: inherit; font-size: 13px; font-weight: 700; background: #f1f5f9; color: var(--muted); border: none; border-radius: 10px; padding: 10px 12px; cursor: pointer; }
+  .settings-err { color: #ef4444; font-size: 13px; font-weight: 700; text-align: center; min-height: 16px; margin-top: 10px; }
+  .profcard .pc-photo { width: 84px; height: 84px; border-radius: 50%; object-fit: cover; margin: 0 auto; display: block; border: 3px solid rgba(255,255,255,.55); }
+  .logo img { width: 100%; height: 100%; object-fit: cover; border-radius: 12px; display: block; }
 
   /* ===== 첫 설정 (언어 선택 온보딩) ===== */
   .onboarding { display: none; position: fixed; inset: 0; z-index: 100; align-items: center; justify-content: center; padding: 24px; background: linear-gradient(160deg, #FEE500, #FFD400); }
@@ -300,14 +308,21 @@
       </div>
       <div class="settings-label" data-i18n="set_avatar">아바타</div>
       <div class="avatar-row" id="avatarRow"></div>
+      <div class="settings-label">📷 프로필 사진 (선택)</div>
+      <div class="photo-pick">
+        <div class="photo-prev" id="photoPrev">🙂</div>
+        <label class="photo-btn">사진 선택<input type="file" id="profPhotoInput" accept="image/*" hidden /></label>
+        <button class="photo-clear" id="profPhotoClear">지우기</button>
+      </div>
       <div class="settings-label" data-i18n="set_nick">닉네임</div>
       <input class="settings-input" id="profNick" data-i18n-ph="set_nick_ph" placeholder="이름을 입력하세요" maxlength="20" autocomplete="off" />
-      <div class="settings-label" data-i18n="set_country">국가</div>
+      <div class="settings-label"><span data-i18n="set_country">국가</span> <span style="color:#ef4444">*필수</span></div>
       <select class="settings-input" id="profCountry"></select>
       <div class="settings-label" data-i18n="set_birthday">생일</div>
       <input class="settings-input" id="profBirthday" type="date" />
       <div class="settings-label" data-i18n="set_uilang">앱 언어</div>
       <div class="uilang-row" id="uilangRow"></div>
+      <div class="settings-err" id="setErr"></div>
       <button class="settings-save" id="profSave" data-i18n="set_save">저장</button>
     </div>
   </div>
@@ -350,6 +365,10 @@
       </div>
       <div class="log" id="cloudLog">
         <div class="empty" id="cloudEmpty"><div class="big">💬</div>방에 입장해서<br>팀과 대화를 시작하세요.</div>
+      </div>
+      <div class="chatlangbar" id="cloudSendBar">
+        <span>💬 내가 쓸 언어</span>
+        <select id="cloudSendLang" class="chatlang"></select>
       </div>
       <div class="chatbar" id="cloudChatBar">
         <input id="cloudInput" class="chatinput" placeholder="메시지 입력…" data-i18n-ph="chat_ph" autocomplete="off" />
@@ -1316,7 +1335,9 @@ try { profile = JSON.parse(localStorage.getItem("profile") || "{}"); } catch (_)
 
 function applyProfileToHeader() {
   const av = document.getElementById("hdrAvatar");
-  if (av) av.textContent = profile.avatar || "🌐";
+  if (!av) return;
+  if (profile.photo) av.innerHTML = `<img src="${profile.photo}" alt="">`;
+  else av.textContent = profile.avatar || "🌐";
 }
 
 const settingsModal = document.getElementById("settingsModal");
@@ -1327,7 +1348,34 @@ const profCountry = document.getElementById("profCountry");
 const profBirthday = document.getElementById("profBirthday");
 COUNTRIES.forEach(c => profCountry.appendChild(new Option(c, c)));
 
-let tmpAvatar = "🌐";
+let tmpAvatar = "🌐", tmpPhoto = null;
+const photoPrev = document.getElementById("photoPrev");
+function setPhotoPrev() {
+  if (tmpPhoto) photoPrev.innerHTML = `<img src="${tmpPhoto}" alt="">`;
+  else photoPrev.textContent = (tmpAvatar && tmpAvatar !== "🌐") ? tmpAvatar : "🙂";
+}
+function fileToDataUrl(file, maxSize) {
+  return new Promise((res) => {
+    const img = new Image(); const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+      const w = Math.max(1, Math.round(img.width * scale)), h = Math.max(1, Math.round(img.height * scale));
+      const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
+      cv.getContext("2d").drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(url);
+      try { res(cv.toDataURL("image/jpeg", 0.82)); } catch (_) { res(null); }
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); res(null); };
+    img.src = url;
+  });
+}
+document.getElementById("profPhotoInput").onchange = async (e) => {
+  const f = e.target.files && e.target.files[0]; if (!f) return;
+  const d = await fileToDataUrl(f, 256);
+  if (d) { tmpPhoto = d; setPhotoPrev(); }
+  e.target.value = "";
+};
+document.getElementById("profPhotoClear").onclick = () => { tmpPhoto = null; setPhotoPrev(); };
 function buildAvatarRow() {
   avatarRow.innerHTML = "";
   AVATARS.forEach(e => {
@@ -1354,14 +1402,18 @@ function buildUilangRow() {
 }
 function openSettings() {
   tmpAvatar = profile.avatar || "🌐";
+  tmpPhoto = profile.photo || null;
   profNick.value = profile.nick || "";
   profCountry.value = profile.country || "";
   profBirthday.value = profile.birthday || "";
+  document.getElementById("setErr").textContent = "";
+  setPhotoPrev();
   buildAvatarRow(); buildUilangRow();
   settingsModal.classList.add("open");
 }
 function saveProfile() {
-  profile = { avatar: tmpAvatar, nick: profNick.value.trim(), country: profCountry.value, birthday: profBirthday.value };
+  if (!profCountry.value) { document.getElementById("setErr").textContent = "국가를 선택해주세요 (필수)"; profCountry.focus(); return; }
+  profile = { avatar: tmpAvatar, photo: tmpPhoto, nick: profNick.value.trim(), country: profCountry.value, birthday: profBirthday.value };
   try { localStorage.setItem("profile", JSON.stringify(profile)); } catch (_) {}
   applyProfileToHeader();
   if (typeof renderProfCard === "function") renderProfCard();
@@ -1393,6 +1445,9 @@ async function ensureSbClient() {
 }
 const cloudLogEl = document.getElementById("cloudLog");
 const cloudEmptyEl = document.getElementById("cloudEmpty");
+const cloudSendLangEl = document.getElementById("cloudSendLang");
+LANGS.forEach(l => cloudSendLangEl.appendChild(new Option(l.flag + " " + l.name, l.code)));
+cloudSendLangEl.value = myLangEl.value;
 function addCloudBubble(m, mine) {
   if (cloudEmptyEl) cloudEmptyEl.style.display = "none";
   const b = document.createElement("div");
@@ -1424,6 +1479,8 @@ async function joinCloud(room) {
   document.getElementById("cloudLive").style.display = "block";
   document.getElementById("cloudRoomName").textContent = room;
   document.getElementById("cloudChatBar").classList.add("show");
+  document.getElementById("cloudSendBar").classList.add("show");
+  cloudSendLangEl.value = myLangEl.value;
   cloudLogEl.innerHTML = "";
   if (cloudChannel) { try { sb.removeChannel(cloudChannel); } catch (_) {} }
   cloudChannel = sb.channel("room-" + room + "-" + Date.now())
@@ -1444,7 +1501,8 @@ async function sendCloud() {
   if (!text || !sbClient || !cloudRoom) return;
   inp.value = "";
   const p = profile || {};
-  const res = await sbClient.from("messages").insert({ room: cloudRoom, uid: myUid, nick: p.nick || "익명", avatar: p.avatar || "🙂", country: p.country || "", lang: myLangEl.value, text: text });
+  const sendLang = (document.getElementById("cloudSendLang").value) || myLangEl.value;
+  const res = await sbClient.from("messages").insert({ room: cloudRoom, uid: myUid, nick: p.nick || "익명", avatar: p.avatar || "🙂", country: p.country || "", lang: sendLang, text: text });
   if (res.error) setCloudStatus("⚠️ 전송 실패: " + res.error.message);
 }
 function leaveCloud() {
@@ -1453,6 +1511,7 @@ function leaveCloud() {
   document.getElementById("cloudLive").style.display = "none";
   document.getElementById("cloudSetup").style.display = "block";
   document.getElementById("cloudChatBar").classList.remove("show");
+  document.getElementById("cloudSendBar").classList.remove("show");
 }
 document.getElementById("cloudToggle").onclick = () => document.getElementById("cloudPanel").classList.toggle("open");
 document.getElementById("cloudJoinBtn").onclick = () => { const r = (document.getElementById("cloudRoom").value.trim() || "team").toLowerCase(); joinCloud(r); };
@@ -1521,8 +1580,9 @@ document.getElementById("photoInput").onchange = async (e) => {
 function renderProfCard() {
   const el = document.getElementById("profCard"); if (!el) return;
   const p = profile || {};
+  const av = p.photo ? `<img class="pc-photo" src="${p.photo}" alt="">` : `<div class="pc-avatar">${p.avatar || "🙂"}</div>`;
   el.innerHTML =
-    `<div class="pc-avatar">${p.avatar || "🙂"}</div>` +
+    av +
     `<div class="pc-nick">${escapeHtml(p.nick || "이름 없음")}</div>` +
     `<div class="pc-country">${p.country ? escapeHtml(p.country) : "국가 미설정"}</div>` +
     `<button class="pc-edit" id="pcEdit">✏️ 프로필 편집</button>`;
