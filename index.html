@@ -190,6 +190,12 @@
   .swatch { height: 52px; border-radius: 12px; border: 3px solid transparent; cursor: pointer; box-shadow: var(--sh-sm); }
   .swatch.sel { border-color: #0f172a; }
 
+  /* ===== 클라우드 팀 채팅 ===== */
+  .cloudbar { padding: 0 14px 8px; }
+  .cloudtoggle { width: 100%; font-family: inherit; font-size: 13px; font-weight: 800; color: #0284c7; background: var(--card); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 11px 13px; cursor: pointer; box-shadow: var(--sh-sm); text-align: left; }
+  .cloudpanel { display: none; background: var(--card); border: 1px solid var(--line); border-radius: var(--r-sm); margin-top: 8px; padding: 14px; box-shadow: var(--sh); }
+  .cloudpanel.open { display: block; }
+
   /* ===== 헤더 설정 버튼 + 설정/프로필 모달 ===== */
   .gear { margin-left: auto; flex: 0 0 auto; background: rgba(0,0,0,.08); border: none; width: 38px; height: 38px; border-radius: 12px; font-size: 18px; cursor: pointer; }
   .settings { display: none; position: fixed; inset: 0; z-index: 90; align-items: center; justify-content: center; padding: 20px; background: rgba(0,0,0,.45); }
@@ -309,6 +315,22 @@
     </div>
   </div>
 
+  <div class="cloudbar">
+    <button class="cloudtoggle" id="cloudToggle">☁️ 저장되는 팀 채팅 (어디서나·서버) ▾</button>
+    <div class="cloudpanel" id="cloudPanel">
+      <div id="cloudSetup">
+        <input id="cloudRoom" class="cinput" placeholder="방 이름" value="team" maxlength="20" autocomplete="off" />
+        <button class="cbtn" id="cloudJoinBtn" style="width:100%;margin-top:8px">입장하기</button>
+        <div class="cnote">같은 <b>방 이름</b>에 들어간 사람끼리 대화해요.<br>대화가 <b>저장</b>되고, 서로 다른 통신망이어도 잘 됩니다.</div>
+        <div class="cnote" id="cloudStatus"></div>
+      </div>
+      <div id="cloudLive" style="display:none">
+        <div class="clive">☁️ <span id="cloudRoomName"></span> 방 접속 중</div>
+        <button class="cbtn hang" id="cloudLeaveBtn">나가기</button>
+      </div>
+    </div>
+  </div>
+
   <div class="themebar">
     <button class="themetoggle" id="themeToggle">🎨 배경 꾸미기 ▾</button>
     <div class="themepanel" id="themePanel">
@@ -340,6 +362,11 @@
   <div class="chatbar" id="chatBar">
     <input id="chatInput" class="chatinput" placeholder="메시지 입력…" data-i18n-ph="chat_ph" autocomplete="off" />
     <button id="chatSend" class="chatsend" data-i18n="chat_send">보내기</button>
+  </div>
+
+  <div class="chatbar" id="cloudChatBar">
+    <input id="cloudInput" class="chatinput" placeholder="메시지 입력…" data-i18n-ph="chat_ph" autocomplete="off" />
+    <button id="cloudSend" class="chatsend" data-i18n="chat_send">보내기</button>
   </div>
 
   <div class="autowrap">
@@ -1251,6 +1278,91 @@ document.getElementById("settingsClose").onclick = () => settingsModal.classList
 document.getElementById("profSave").onclick = saveProfile;
 settingsModal.onclick = (e) => { if (e.target === settingsModal) settingsModal.classList.remove("open"); };
 applyProfileToHeader();
+
+/* =========================================================
+   ☁️ 클라우드 팀 채팅 (Supabase) — 저장 + 실시간 + 어디서나
+========================================================= */
+const SB_URL = "https://xiiysyprmtyxkjfmsdcd.supabase.co";
+const SB_KEY = "sb_publishable_7Rlk8kPtWhMnJNw5S_hRtQ_m3T7jJmR";
+let myUid = null;
+try { myUid = localStorage.getItem("myUid"); } catch (_) {}
+if (!myUid) { myUid = "u_" + Math.random().toString(36).slice(2) + Date.now().toString(36); try { localStorage.setItem("myUid", myUid); } catch (_) {} }
+
+let sbClient = null, cloudChannel = null, cloudRoom = null, cloudSeen = new Set();
+function setCloudStatus(m) { const el = document.getElementById("cloudStatus"); if (el) el.textContent = m || ""; }
+function loadScriptOnce(src) { return new Promise((res, rej) => { const s = document.createElement("script"); s.src = src; s.onload = res; s.onerror = () => rej(new Error("load fail")); document.head.appendChild(s); }); }
+async function ensureSbClient() {
+  if (sbClient) return sbClient;
+  if (!window.supabase) await loadScriptOnce("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2");
+  sbClient = window.supabase.createClient(SB_URL, SB_KEY);
+  return sbClient;
+}
+function addCloudBubble(m, mine) {
+  emptyEl.style.display = "none";
+  const b = document.createElement("div");
+  b.className = "bubble " + (mine ? "me" : "them");
+  const flag = m.country ? m.country.split(" ")[0] : "";
+  const who = (m.avatar || "🙂") + " " + escapeHtml(m.nick || "익명") + (flag ? " " + flag : "");
+  b.innerHTML =
+    `<div class="who">${who}</div>` +
+    `<div class="orig" dir="auto">${escapeHtml(m.orig)}</div>` +
+    ((m.tr && m.tr !== m.orig) ? `<div class="trans" dir="auto">${escapeHtml(m.tr)}</div>` : "") +
+    `<div class="replay">🔊</div>`;
+  b.querySelector(".replay").onclick = () => speak(m.tr || m.orig, myLangEl.value);
+  logEl.appendChild(b); logEl.scrollTop = logEl.scrollHeight;
+}
+async function handleCloudMsg(m) {
+  if (!m || cloudSeen.has(m.id)) return;
+  cloudSeen.add(m.id);
+  const mine = m.uid === myUid;
+  let tr = m.text;
+  if (m.lang && m.lang !== myLangEl.value) { try { tr = await translate(m.text, m.lang, myLangEl.value); } catch (_) { tr = m.text; } }
+  addCloudBubble({ avatar: m.avatar, nick: m.nick, country: m.country, orig: m.text, tr: tr }, mine);
+}
+async function joinCloud(room) {
+  setCloudStatus("연결 중…");
+  let sb;
+  try { sb = await ensureSbClient(); } catch (e) { setCloudStatus("⚠️ 연결 실패 — 인터넷을 확인하세요."); return; }
+  cloudRoom = room; cloudSeen = new Set();
+  document.getElementById("cloudSetup").style.display = "none";
+  document.getElementById("cloudLive").style.display = "block";
+  document.getElementById("cloudRoomName").textContent = room;
+  document.getElementById("cloudChatBar").classList.add("show");
+  logEl.innerHTML = "";
+  if (cloudChannel) { try { sb.removeChannel(cloudChannel); } catch (_) {} }
+  cloudChannel = sb.channel("room-" + room + "-" + Date.now())
+    .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: "room=eq." + room }, p => handleCloudMsg(p.new))
+    .subscribe(async (status) => {
+      if (status === "SUBSCRIBED") {
+        const res = await sb.from("messages").select("*").eq("room", room).order("id", { ascending: true }).limit(100);
+        (res.data || []).forEach(handleCloudMsg);
+        setCloudStatus("");
+      } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+        setCloudStatus("⚠️ 실시간 연결 문제 — 나갔다 다시 입장해 보세요.");
+      }
+    });
+}
+async function sendCloud() {
+  const inp = document.getElementById("cloudInput");
+  const text = inp.value.trim();
+  if (!text || !sbClient || !cloudRoom) return;
+  inp.value = "";
+  const p = profile || {};
+  const res = await sbClient.from("messages").insert({ room: cloudRoom, uid: myUid, nick: p.nick || "익명", avatar: p.avatar || "🙂", country: p.country || "", lang: myLangEl.value, text: text });
+  if (res.error) setCloudStatus("⚠️ 전송 실패: " + res.error.message);
+}
+function leaveCloud() {
+  if (cloudChannel && sbClient) { try { sbClient.removeChannel(cloudChannel); } catch (_) {} }
+  cloudChannel = null; cloudRoom = null;
+  document.getElementById("cloudLive").style.display = "none";
+  document.getElementById("cloudSetup").style.display = "block";
+  document.getElementById("cloudChatBar").classList.remove("show");
+}
+document.getElementById("cloudToggle").onclick = () => document.getElementById("cloudPanel").classList.toggle("open");
+document.getElementById("cloudJoinBtn").onclick = () => { const r = (document.getElementById("cloudRoom").value.trim() || "team").toLowerCase(); joinCloud(r); };
+document.getElementById("cloudLeaveBtn").onclick = leaveCloud;
+document.getElementById("cloudSend").onclick = sendCloud;
+document.getElementById("cloudInput").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); sendCloud(); } });
 
 /* =========================================================
    첫 설정: 처음 켜면 언어 선택, 이후엔 저장된 언어로
