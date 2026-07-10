@@ -285,6 +285,34 @@
   .profcard .pc-photo { width: 84px; height: 84px; border-radius: 50%; object-fit: cover; margin: 0 auto; display: block; border: 3px solid rgba(255,255,255,.55); }
   .logo img { width: 100%; height: 100%; object-fit: cover; border-radius: 12px; display: block; }
 
+  /* ===== 🎮 게임 ===== */
+  .gamemodal { display: none; position: fixed; inset: 0; z-index: 95; background: linear-gradient(170deg, #201c3f, #2f2b58); color: #fff; flex-direction: column; }
+  .gamemodal.open { display: flex; }
+  .gamehead { display: flex; align-items: center; gap: 10px; padding: calc(12px + env(safe-area-inset-top)) 16px 12px; }
+  .gtitle { flex: 1; font-size: 18px; font-weight: 800; text-align: center; }
+  .gback { background: rgba(255,255,255,.15); border: none; color: #fff; font-family: inherit; font-weight: 700; font-size: 14px; border-radius: 999px; padding: 7px 14px; cursor: pointer; }
+  .gamehead .settings-x { color: #fff; }
+  .gamehub { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+  .gamecard { display: flex; align-items: center; gap: 14px; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.15); border-radius: 18px; padding: 18px; cursor: pointer; color: #fff; font-family: inherit; }
+  .gamecard:active { transform: scale(.98); }
+  .gc-emoji { font-size: 34px; }
+  .gc-name { font-size: 17px; font-weight: 800; flex: 1; text-align: left; }
+  .gc-best { font-size: 12px; opacity: .85; }
+  .game-soon { text-align: center; font-size: 12px; opacity: .6; margin-top: 8px; line-height: 1.7; }
+  .gamestage { display: none; flex: 1; overflow-y: auto; padding: 10px 14px 24px; flex-direction: column; align-items: center; }
+  .gamestage.on { display: flex; }
+  .plane-canvas { width: 100%; max-width: 460px; background: linear-gradient(180deg,#8ec5ff,#e8f4ff); border-radius: 16px; touch-action: none; }
+  .plane-info { display: flex; justify-content: space-between; width: 100%; max-width: 460px; margin: 12px 0; font-size: 15px; font-weight: 800; }
+  .plane-btn { width: 100%; max-width: 460px; font-family: inherit; font-size: 17px; font-weight: 800; border: none; border-radius: 14px; padding: 15px; background: linear-gradient(135deg,#f59e0b,#f97316); color: #fff; cursor: pointer; }
+  .plane-hint { font-size: 13px; opacity: .85; margin-top: 12px; text-align: center; line-height: 1.6; }
+  .omok-info { font-size: 16px; font-weight: 800; margin-bottom: 10px; }
+  .omok-board { display: grid; background: #e0be7e; padding: 5px; border-radius: 10px; touch-action: manipulation; }
+  .omok-cell { border: 0.5px solid rgba(0,0,0,.22); display: grid; place-items: center; cursor: pointer; }
+  .omok-cell .stone { width: 84%; height: 84%; border-radius: 50%; box-shadow: 0 1px 2px rgba(0,0,0,.3); }
+  .omok-cell .stone.b { background: radial-gradient(circle at 34% 34%, #666, #000); }
+  .omok-cell .stone.w { background: radial-gradient(circle at 34% 34%, #fff, #c3ccd6); }
+  .omok-reset { margin-top: 14px; font-family: inherit; font-weight: 700; font-size: 14px; border: none; border-radius: 12px; padding: 12px 22px; background: rgba(255,255,255,.16); color: #fff; cursor: pointer; }
+
   /* ===== 첫 설정 (언어 선택 온보딩) ===== */
   .onboarding { display: none; position: fixed; inset: 0; z-index: 100; align-items: center; justify-content: center; padding: 24px; background: linear-gradient(160deg, #FEE500, #FFD400); }
   .ob-card { background: #fff; border-radius: 26px; padding: 30px 22px; width: 100%; max-width: 360px; text-align: center; box-shadow: 0 22px 55px rgba(0,0,0,.25); }
@@ -318,9 +346,24 @@
       <span class="wordmark">LINKO</span>
       <span class="tagline" data-i18n="tagline">언어가 달라도, 막힘없이</span>
     </div>
+    <button class="gear" id="gamesBtn" title="게임">🎮</button>
     <button class="gear" id="plusBtn" title="친구 추가">➕</button>
     <button class="gear" id="settingsBtn" title="설정">⚙️</button>
   </header>
+
+  <div class="gamemodal" id="gamesModal">
+    <div class="gamehead">
+      <button class="gback" id="gameBack" style="display:none">‹ 목록</button>
+      <span class="gtitle" id="gameTitle">🎮 게임</span>
+      <button class="settings-x" id="gamesClose">✕</button>
+    </div>
+    <div class="gamehub" id="gameHub">
+      <button class="gamecard" data-game="plane"><span class="gc-emoji">🛩️</span><span class="gc-name">비행기 멀리 날리기</span><span class="gc-best" id="best-plane"></span></button>
+      <button class="gamecard" data-game="omok"><span class="gc-emoji">⚫</span><span class="gc-name">오목 (둘이서)</span></button>
+      <div class="game-soon">🔜 곧 추가: 스도쿠 · 체스 · 낱말퀴즈 · 친구 순위 경쟁</div>
+    </div>
+    <div class="gamestage" id="gameStage"></div>
+  </div>
 
   <div class="settings" id="addModal">
     <div class="settings-card">
@@ -1764,6 +1807,102 @@ function switchTab(name) {
 document.querySelectorAll(".tabbtn").forEach(b => { b.onclick = () => switchTab(b.getAttribute("data-tab")); });
 renderProfCard();
 switchTab("chat");
+
+/* =========================================================
+   🎮 게임 (허브 + 비행기 멀리 날리기 + 오목)
+========================================================= */
+(function initGames() {
+  const modal = document.getElementById("gamesModal");
+  const hub = document.getElementById("gameHub");
+  const stage = document.getElementById("gameStage");
+  const back = document.getElementById("gameBack");
+  const title = document.getElementById("gameTitle");
+  let raf = null;
+  function stopRaf() { if (raf) { cancelAnimationFrame(raf); raf = null; } }
+  function getBest(k) { try { return parseInt(localStorage.getItem("gbest_" + k)) || 0; } catch (_) { return 0; } }
+  function setBest(k, v) { try { if (v > getBest(k)) localStorage.setItem("gbest_" + k, String(v)); } catch (_) {} }
+
+  function openHub() {
+    stopRaf(); stage.innerHTML = ""; stage.classList.remove("on");
+    hub.style.display = "flex"; back.style.display = "none"; title.textContent = "🎮 게임";
+    const bp = document.getElementById("best-plane"); if (bp) { const b = getBest("plane"); bp.textContent = b ? ("최고 " + b + "m") : ""; }
+  }
+  function showGame(name) {
+    stopRaf(); stage.innerHTML = ""; hub.style.display = "none";
+    stage.classList.add("on"); back.style.display = "block";
+    if (name === "plane") { title.textContent = "🛩️ 비행기 날리기"; buildPlane(); }
+    else if (name === "omok") { title.textContent = "⚫ 오목"; buildOmok(); }
+  }
+  document.getElementById("gamesBtn").onclick = () => { modal.classList.add("open"); openHub(); };
+  document.getElementById("gamesClose").onclick = () => { modal.classList.remove("open"); stopRaf(); };
+  back.onclick = openHub;
+  hub.querySelectorAll(".gamecard").forEach(c => c.onclick = () => showGame(c.getAttribute("data-game")));
+
+  function buildPlane() {
+    stage.innerHTML =
+      '<div class="plane-info"><span id="pDist">거리: 0m</span><span id="pBest">최고: ' + getBest("plane") + 'm</span></div>' +
+      '<canvas class="plane-canvas" id="pCanvas" width="460" height="300"></canvas>' +
+      '<button class="plane-btn" id="pBtn">🚀 발사</button>' +
+      '<div class="plane-hint">파워 막대가 움직일 때 <b>발사</b>를 눌러 세기를 정해요.<br>날아가는 중 화면을 <b>탭</b>하면 부스트! ✨</div>';
+    const cv = document.getElementById("pCanvas"), ctx = cv.getContext("2d");
+    const W = cv.width, H = cv.height, groundY = H - 24;
+    const btn = document.getElementById("pBtn"), pDist = document.getElementById("pDist"), pBest = document.getElementById("pBest");
+    let state, power, powDir, px, py, vx, vy, dist, boosts, camX;
+    function reset() { state = "aim"; power = 0; powDir = 1; dist = 0; camX = 0; boosts = 2; px = 40; py = groundY - 10; vx = 0; vy = 0; btn.textContent = "🚀 발사 (세기 고정)"; }
+    function launch() { const p = power / 100, speed = 6 + p * 12, ang = 42 * Math.PI / 180; vx = speed * Math.cos(ang); vy = -speed * Math.sin(ang); state = "fly"; btn.textContent = "✈️ 날아가는 중 (탭=부스트)"; }
+    function boost() { if (state === "fly" && boosts > 0) { boosts--; vx += 3; vy -= 2.2; } }
+    btn.onclick = () => { if (state === "aim") launch(); else if (state === "done") reset(); else boost(); };
+    cv.onpointerdown = () => { if (state === "fly") boost(); };
+    function step() {
+      vy += 0.28; vx *= 0.995; px += vx; py += vy;
+      if (py >= groundY - 10) { py = groundY - 10; if (Math.abs(vy) > 1.2) { vy = -vy * 0.4; vx *= 0.7; } else { vy = 0; vx *= 0.86; if (Math.abs(vx) < 0.25) state = "done"; } }
+      dist = Math.max(0, Math.round((px - 40) / 6)); camX = Math.max(0, px - 120);
+    }
+    function draw() {
+      ctx.clearRect(0, 0, W, H);
+      ctx.fillStyle = "#7ec86a"; ctx.fillRect(0, groundY, W, H - groundY);
+      ctx.fillStyle = "rgba(0,0,0,.28)"; ctx.font = "11px sans-serif";
+      for (let m = 0; m <= 5000; m += 50) { const sx = 40 + m * 6 - camX; if (sx > -30 && sx < W + 30) { ctx.fillRect(sx, groundY, 1, 6); if (m % 100 === 0) ctx.fillText(m + "m", sx - 8, groundY + 18); } }
+      if (state === "aim") { power += powDir * 2.2; if (power >= 100) { power = 100; powDir = -1; } if (power <= 0) { power = 0; powDir = 1; } ctx.fillStyle = "#00000022"; ctx.fillRect(20, 20, 170, 16); ctx.fillStyle = power > 66 ? "#ef4444" : power > 33 ? "#f59e0b" : "#22c55e"; ctx.fillRect(20, 20, 170 * power / 100, 16); ctx.strokeStyle = "#fff"; ctx.strokeRect(20, 20, 170, 16); }
+      const sx = px - camX; ctx.save(); ctx.translate(sx, py); ctx.rotate(state === "fly" ? Math.atan2(vy, vx) : -0.4); ctx.font = "26px serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("🛩️", 0, 0); ctx.restore();
+      pDist.textContent = "거리: " + dist + "m";
+      if (state === "done") { pDist.textContent = "🏁 " + dist + "m!"; btn.textContent = "🔄 다시 하기"; setBest("plane", dist); pBest.textContent = "최고: " + getBest("plane") + "m"; }
+    }
+    function loop() { if (state === "fly") step(); draw(); raf = requestAnimationFrame(loop); }
+    reset(); loop();
+  }
+
+  function buildOmok() {
+    const N = 13;
+    stage.innerHTML = '<div class="omok-info" id="oInfo">⚫ 흑돌 차례</div><div class="omok-board" id="oBoard"></div><button class="omok-reset" id="oReset">🔄 새 게임</button>';
+    const board = document.getElementById("oBoard"), info = document.getElementById("oInfo");
+    const cellPx = Math.max(20, Math.min(28, Math.floor((Math.min(window.innerWidth, 460) - 44) / N)));
+    board.style.gridTemplateColumns = "repeat(" + N + ", " + cellPx + "px)";
+    let grid, turn, over;
+    function newGame() {
+      grid = Array.from({ length: N }, () => Array(N).fill(0)); turn = 1; over = false; info.textContent = "⚫ 흑돌 차례"; board.innerHTML = "";
+      for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) { const c = document.createElement("div"); c.className = "omok-cell"; c.style.width = cellPx + "px"; c.style.height = cellPx + "px"; c.onclick = () => place(x, y, c); board.appendChild(c); }
+    }
+    function place(x, y, c) {
+      if (over || grid[y][x]) return;
+      grid[y][x] = turn; const s = document.createElement("div"); s.className = "stone " + (turn === 1 ? "b" : "w"); c.appendChild(s);
+      if (win(x, y, turn)) { over = true; info.textContent = (turn === 1 ? "⚫ 흑" : "⚪ 백") + "돌 승리! 🎉"; return; }
+      turn = turn === 1 ? 2 : 1; info.textContent = turn === 1 ? "⚫ 흑돌 차례" : "⚪ 백돌 차례";
+    }
+    function win(x, y, p) {
+      const dirs = [[1, 0], [0, 1], [1, 1], [1, -1]];
+      for (const [dx, dy] of dirs) {
+        let cnt = 1;
+        for (let s = 1; s < 5; s++) { const nx = x + dx * s, ny = y + dy * s; if (nx < 0 || ny < 0 || nx >= N || ny >= N || grid[ny][nx] !== p) break; cnt++; }
+        for (let s = 1; s < 5; s++) { const nx = x - dx * s, ny = y - dy * s; if (nx < 0 || ny < 0 || nx >= N || ny >= N || grid[ny][nx] !== p) break; cnt++; }
+        if (cnt >= 5) return true;
+      }
+      return false;
+    }
+    document.getElementById("oReset").onclick = newGame;
+    newGame();
+  }
+})();
 
 /* =========================================================
    첫 설정: 처음 켜면 언어 선택, 이후엔 저장된 언어로
