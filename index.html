@@ -243,8 +243,9 @@
   .mycode-val { flex: 1; min-width: 0; font-size: 13px; font-weight: 700; color: var(--ink); background: #fff; border-radius: 8px; padding: 8px 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .mycode-copy { flex: 0 0 auto; font-family: inherit; font-size: 12px; font-weight: 700; border: none; background: var(--brand); color: #fff; border-radius: 8px; padding: 9px 12px; cursor: pointer; }
   .cbtn.invbtn { width: 100%; background: linear-gradient(135deg,#10b981,#22c55e); margin-bottom: 8px; }
-  .invite-phone { display: flex; gap: 8px; margin-bottom: 10px; }
-  .invite-phone .cinput { margin: 0; }
+  .invite-phone { display: flex; gap: 6px; margin-bottom: 10px; align-items: center; }
+  .invite-phone #phoneCC { flex: 0 0 auto; width: auto; min-width: 74px; margin: 0; }
+  .invite-phone .cinput { flex: 1; min-width: 0; margin: 0; }
   .cbtn.invbtn2 { flex: 0 0 auto; width: auto; padding: 12px 14px; background: linear-gradient(135deg,#0ea5e9,#38bdf8); }
   .addfriend { display: flex; gap: 8px; margin-bottom: 6px; }
   .addfriend .cinput { margin: 0; }
@@ -317,8 +318,38 @@
       <span class="wordmark">LINKO</span>
       <span class="tagline" data-i18n="tagline">언어가 달라도, 막힘없이</span>
     </div>
+    <button class="gear" id="plusBtn" title="친구 추가">➕</button>
     <button class="gear" id="settingsBtn" title="설정">⚙️</button>
   </header>
+
+  <div class="settings" id="addModal">
+    <div class="settings-card">
+      <div class="settings-head">
+        <span>➕ 친구 추가 · 초대</span>
+        <button class="settings-x" id="addModalClose">✕</button>
+      </div>
+      <div class="mycode">
+        <div class="mycode-label">🔑 내 친구 코드</div>
+        <div class="mycode-row">
+          <div class="mycode-val" id="myCode">…</div>
+          <button class="mycode-copy" id="myCodeCopy">📋 복사</button>
+        </div>
+      </div>
+      <button class="cbtn invbtn" id="myCodeShare">📤 친구 코드 공유하기 (카톡·문자 등)</button>
+      <div class="settings-label">📱 휴대폰 번호로 초대</div>
+      <div class="invite-phone">
+        <select id="phoneCC" class="chatlang"></select>
+        <input id="invitePhone" class="cinput" type="tel" inputmode="tel" placeholder="번호 (앞 0 빼고)" autocomplete="off" />
+        <button class="cbtn invbtn2" id="invitePhoneBtn">📱 초대</button>
+      </div>
+      <div class="settings-label">🔑 코드로 친구 추가</div>
+      <div class="addfriend">
+        <input id="friendCodeInput" class="cinput" placeholder="친구 코드 입력" autocomplete="off" />
+        <button class="cbtn addfr" id="addFriendBtn">➕ 추가</button>
+      </div>
+      <div class="cnote" id="friendStatus"></div>
+    </div>
+  </div>
 
   <div class="settings" id="settingsModal">
     <div class="settings-card">
@@ -354,25 +385,8 @@
     <section class="tab" id="tab-friends">
       <div class="profcard" id="profCard"></div>
       <div class="fsection">
-        <div class="mycode">
-          <div class="mycode-label">🔑 내 친구 코드 (친구에게 알려주세요)</div>
-          <div class="mycode-row">
-            <div class="mycode-val" id="myCode">…</div>
-            <button class="mycode-copy" id="myCodeCopy">📋 복사</button>
-          </div>
-        </div>
-        <button class="cbtn invbtn" id="myCodeShare">📤 친구 코드 공유하기 (카톡·문자 등)</button>
-        <div class="invite-phone">
-          <input id="invitePhone" class="cinput" type="tel" inputmode="tel" placeholder="친구 휴대폰 번호" autocomplete="off" />
-          <button class="cbtn invbtn2" id="invitePhoneBtn">📱 문자로 초대</button>
-        </div>
-        <div class="addfriend">
-          <input id="friendCodeInput" class="cinput" placeholder="친구 코드 입력" autocomplete="off" />
-          <button class="cbtn addfr" id="addFriendBtn">➕ 친구 추가</button>
-        </div>
-        <div class="cnote" id="friendStatus"></div>
         <div class="fhead">👥 내 친구</div>
-        <div class="friendlist" id="friendList"><div class="friend-empty">아직 친구가 없어요.<br>위에 친구 코드를 입력해서 추가해보세요!</div></div>
+        <div class="friendlist" id="friendList"><div class="friend-empty">아직 친구가 없어요.<br>오른쪽 위 <b>➕</b> 로 친구를 추가·초대해보세요!</div></div>
       </div>
       <div class="themebar">
         <button class="themetoggle" id="themeToggle">🎨 배경 꾸미기 ▾</button>
@@ -1649,8 +1663,11 @@ async function addFriend(code) {
     const sb = await ensureSbClient();
     const res = await sb.from("profiles").select("uid,nick").eq("uid", code).maybeSingle();
     if (!res.data) { setFriendStatus("그 코드의 사용자를 찾을 수 없어요. (상대가 프로필을 저장했는지 확인)"); return; }
-    const ins = await sb.from("friends").upsert({ uid: myUid, friend_uid: code });
-    if (ins.error) { setFriendStatus("추가 실패: " + ins.error.message); return; }
+    const ins = await sb.from("friends").insert({ uid: myUid, friend_uid: code });
+    if (ins.error) {
+      if (ins.error.code === "23505" || /duplicate|already exists/i.test(ins.error.message || "")) { setFriendStatus("이미 친구예요! 😊"); loadFriends(); document.getElementById("friendCodeInput").value = ""; return; }
+      setFriendStatus("추가 실패: " + ins.error.message); return;
+    }
     setFriendStatus((res.data.nick || "친구") + " 님을 추가했어요! 🎉");
     document.getElementById("friendCodeInput").value = "";
     loadFriends();
@@ -1680,7 +1697,10 @@ async function loadFriends() {
 }
 function inviteUrl() { return location.origin + location.pathname + "?add=" + encodeURIComponent(myUid); }
 function inviteMsg() { return "LINKO 번역 메신저에서 친구해요! 🌍\n제 친구코드를 추가하거나 아래 링크를 열어주세요.\n\n코드: " + myUid + "\n" + inviteUrl(); }
+const COUNTRY_CODES = [["+82","🇰🇷"],["+65","🇸🇬"],["+95","🇲🇲"],["+1","🇺🇸"],["+86","🇨🇳"],["+81","🇯🇵"],["+84","🇻🇳"],["+66","🇹🇭"],["+63","🇵🇭"],["+62","🇮🇩"],["+60","🇲🇾"],["+91","🇮🇳"],["+880","🇧🇩"],["+92","🇵🇰"],["+977","🇳🇵"],["+855","🇰🇭"],["+856","🇱🇦"],["+44","🇬🇧"],["+33","🇫🇷"],["+49","🇩🇪"],["+34","🇪🇸"],["+39","🇮🇹"],["+7","🇷🇺"],["+971","🇦🇪"],["+61","🇦🇺"]];
 (function initFriends() {
+  const pc2 = document.getElementById("phoneCC");
+  if (pc2) { COUNTRY_CODES.forEach(([cc, flag]) => pc2.appendChild(new Option(flag + " " + cc, cc))); pc2.value = "+82"; }
   const mc = document.getElementById("myCode"); if (mc) mc.textContent = myUid;
   const cp = document.getElementById("myCodeCopy");
   if (cp) cp.onclick = () => { try { navigator.clipboard.writeText(myUid); setFriendStatus("코드를 복사했어요!"); } catch (_) {} };
@@ -1693,10 +1713,17 @@ function inviteMsg() { return "LINKO 번역 메신저에서 친구해요! 🌍\n
   };
   const ip = document.getElementById("invitePhoneBtn");
   if (ip) ip.onclick = () => {
-    const num = (document.getElementById("invitePhone").value || "").replace(/[^0-9+]/g, "");
+    const cc = (document.getElementById("phoneCC").value) || "+82";
+    const num = (document.getElementById("invitePhone").value || "").replace(/[^0-9]/g, "").replace(/^0+/, "");
     if (!num) { setFriendStatus("친구 휴대폰 번호를 입력하세요."); return; }
-    window.location.href = "sms:" + num + "?&body=" + encodeURIComponent(inviteMsg());
+    window.location.href = "sms:" + cc + num + "?&body=" + encodeURIComponent(inviteMsg());
   };
+  const am = document.getElementById("addModal");
+  const pb = document.getElementById("plusBtn");
+  if (pb) pb.onclick = () => am.classList.add("open");
+  const amx = document.getElementById("addModalClose");
+  if (amx) amx.onclick = () => am.classList.remove("open");
+  if (am) am.onclick = (e) => { if (e.target === am) am.classList.remove("open"); };
 })();
 // 초대 링크(?add=코드)로 들어오면 친구 탭 + 코드 자동 입력
 (function handleAddParam() {
@@ -1705,9 +1732,11 @@ function inviteMsg() { return "LINKO 번역 메신저에서 친구해요! 🌍\n
     if (!add) return;
     setTimeout(() => {
       if (typeof switchTab === "function") switchTab("friends");
+      const am = document.getElementById("addModal");
+      if (am) am.classList.add("open");
       const inp = document.getElementById("friendCodeInput");
       if (inp) inp.value = add;
-      setFriendStatus("친구 코드가 입력됐어요! ‘➕ 친구 추가’를 눌러주세요.");
+      setFriendStatus("친구 코드가 입력됐어요! ‘➕ 추가’를 눌러주세요.");
     }, 400);
   } catch (_) {}
 })();
