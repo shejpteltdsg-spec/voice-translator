@@ -1894,7 +1894,7 @@ switchTab("chat");
       }
     }
     function pushDust(n, dir) { for (let i = 0; i < n; i++) dust.push({ x: px, y: py, vx: dir * (1 + Math.random() * 2), vy: (Math.random() - 0.5) * 2.4, life: 14 }); }
-    function toMenu() { state = "menu"; refreshUi(); }
+    function toMenu() { state = "menu"; camX = 0; px = startX; py = groundY - 12; vx = 0; vy = 0; dist = 0; bounces = 0; coinRun = 0; trail = []; dust = []; pops = []; shakeT = 0; genItems(); refreshUi(); }
     function startAim() {
       state = "angle"; angle = 45; angDir = 1; power = 0; powDir = 1;
       dist = 0; camX = 0; bounces = 0; coinRun = 0; trail = []; dust = []; pops = []; shakeT = 0;
