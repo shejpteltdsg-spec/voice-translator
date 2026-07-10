@@ -1882,7 +1882,22 @@ switchTab("chat");
     let state, angle, angDir, power, powDir, px, py, vx, vy, dist, fuel, bounces, camX, trail, dust, items, coinRun, pops, shakeT;
     const clouds = [[300, 60], [720, 40], [1150, 95], [1650, 55], [2250, 75], [3050, 45], [3900, 80], [4700, 62], [5600, 48]];
     const hills = [-100, 380, 900, 1500, 2200, 3000, 3900, 4800, 5700];
-    const EMO = { coin: "🪙", balloon: "🎈", rocket: "🚀", bomb: "💣" };
+    function vCoin(x, y) { ctx.beginPath(); ctx.arc(x, y, 7, 0, 7); ctx.fillStyle = "#f6c945"; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = "#c99400"; ctx.stroke(); ctx.lineWidth = 1; ctx.fillStyle = "#a97a00"; ctx.font = "bold 9px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("$", x, y + 0.5); }
+    function vBalloon(x, y) { ctx.strokeStyle = "#9d174d"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x, y + 9); ctx.lineTo(x, y + 18); ctx.stroke(); ctx.fillStyle = "#ec4899"; ctx.beginPath(); ctx.ellipse(x, y, 8, 10, 0, 0, 7); ctx.fill(); ctx.fillStyle = "rgba(255,255,255,.5)"; ctx.beginPath(); ctx.ellipse(x - 2.5, y - 3, 2, 3, 0, 0, 7); ctx.fill(); }
+    function vRocket(x, y) { ctx.fillStyle = "#ef4444"; ctx.beginPath(); ctx.moveTo(x, y - 11); ctx.lineTo(x - 6, y + 5); ctx.lineTo(x + 6, y + 5); ctx.closePath(); ctx.fill(); ctx.fillStyle = "#fbbf24"; ctx.beginPath(); ctx.moveTo(x - 4, y + 5); ctx.lineTo(x, y + 13); ctx.lineTo(x + 4, y + 5); ctx.closePath(); ctx.fill(); ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(x, y - 2, 2, 0, 7); ctx.fill(); }
+    function vBomb(x, y) { ctx.fillStyle = "#1f2937"; ctx.beginPath(); ctx.arc(x, y + 1, 8, 0, 7); ctx.fill(); ctx.strokeStyle = "#9ca3af"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x + 5, y - 6); ctx.quadraticCurveTo(x + 11, y - 10, x + 9, y - 14); ctx.stroke(); ctx.lineWidth = 1; ctx.fillStyle = "#f59e0b"; ctx.beginPath(); ctx.arc(x + 9, y - 15, 2.2, 0, 7); ctx.fill(); ctx.fillStyle = "rgba(255,255,255,.25)"; ctx.beginPath(); ctx.arc(x - 2.5, y - 2, 2.5, 0, 7); ctx.fill(); }
+    function vTree(x, big) { const th = big ? 7 : 6; ctx.fillStyle = "#7a4a1e"; ctx.fillRect(x - 2, groundY - th, 4, th); const top = groundY - th; ctx.fillStyle = big ? "#2f9e44" : "#37b24d"; for (let k = 0; k < 3; k++) { const yb = top - k * 9, yt = yb - 15, w = (big ? 13 : 11) - k * 3; ctx.beginPath(); ctx.moveTo(x, yt); ctx.lineTo(x - w, yb); ctx.lineTo(x + w, yb); ctx.closePath(); ctx.fill(); } }
+    function vSquirrel(x, y, rot) {
+      ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.scale(1.2, 1.2);
+      ctx.fillStyle = "#a5631a"; ctx.beginPath(); ctx.moveTo(-5, 5); ctx.quadraticCurveTo(-20, 6, -19, -9); ctx.quadraticCurveTo(-18, -25, -3, -19); ctx.quadraticCurveTo(-13, -14, -11, -5); ctx.quadraticCurveTo(-10, 2, -5, 5); ctx.fill();
+      ctx.fillStyle = "#c67c2a"; ctx.beginPath(); ctx.ellipse(0, 3, 8, 10, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = "#f0d9b5"; ctx.beginPath(); ctx.ellipse(1, 5, 4, 6, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = "#c67c2a"; ctx.beginPath(); ctx.arc(7, -5, 6.5, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(3, -11); ctx.lineTo(5, -17); ctx.lineTo(9, -12); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = "#f0d9b5"; ctx.beginPath(); ctx.arc(11, -3, 2.2, 0, 7); ctx.fill();
+      ctx.fillStyle = "#1b1b1b"; ctx.beginPath(); ctx.arc(9, -6, 1.7, 0, 7); ctx.fill(); ctx.beginPath(); ctx.arc(13, -3, 1.5, 0, 7); ctx.fill();
+      ctx.restore();
+    }
     function genItems() {
       items = []; let x = 240;
       while (x < 12000) {
@@ -1946,9 +1961,9 @@ switchTab("chat");
         if (it.t === "coin") { if (d < magnetR) { it.got = true; coinRun += 2; pops.push({ x: it.x, y: it.y, txt: "+2", c: "#f4c430", life: 30 }); } }
         else if (d < 26) {
           it.got = true;
-          if (it.t === "balloon") { vy -= 4.6; vx += 1.6; pops.push({ x: it.x, y: it.y, txt: "🎈↑", c: "#ec4899", life: 26 }); }
-          else if (it.t === "rocket") { vx += 10; vy -= 3.2; pushDust(8, -1); pops.push({ x: it.x, y: it.y, txt: "🚀+", c: "#f97316", life: 28 }); }
-          else { const f = 0.45 + 0.55 * helmetMit; vx *= f; vy -= 1.5; shakeT = 12; pops.push({ x: it.x, y: it.y, txt: "💥", c: "#111", life: 26 }); }
+          if (it.t === "balloon") { vy -= 4.6; vx += 1.6; pops.push({ x: it.x, y: it.y, txt: "UP!", c: "#ec4899", life: 26 }); }
+          else if (it.t === "rocket") { vx += 10; vy -= 3.2; pushDust(8, -1); pops.push({ x: it.x, y: it.y, txt: "BOOST!", c: "#f97316", life: 28 }); }
+          else { const f = 0.45 + 0.55 * helmetMit; vx *= f; vy -= 1.5; shakeT = 12; pops.push({ x: it.x, y: it.y, txt: "쿵!", c: "#dc2626", life: 26 }); }
         }
       }
       if (py >= groundY - 12) {
@@ -1973,13 +1988,13 @@ switchTab("chat");
       ctx.fillStyle = "#5aa84a"; ctx.fillRect(0, groundY, W, 4);
       ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
       const t0 = Math.floor((camX - 160) / 160) * 160;
-      for (let tx = t0; tx < camX + W + 160; tx += 160) { const sx = tx - camX; ctx.font = "28px serif"; ctx.fillText(((tx / 160) | 0) % 2 ? "🌲" : "🌳", sx, groundY + 2); }
+      for (let tx = t0; tx < camX + W + 160; tx += 160) { const sx = tx - camX; vTree(sx, ((tx / 160) | 0) % 2 === 0); }
       ctx.fillStyle = "rgba(0,0,0,.3)"; ctx.font = "11px sans-serif";
       for (let m = 0; m <= 20000; m += 50) { const sx = startX + m * 6 - camX; if (sx > -30 && sx < W + 30) { ctx.fillRect(sx, groundY, 1, 7); if (m % 100 === 0) ctx.fillText(m + "m", sx - 8, groundY + 20); } }
       const lx = startX - camX;
       if (lx > -40 && lx < W + 60) { ctx.strokeStyle = "#7a4a1e"; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(lx - 9, groundY - 12); ctx.lineTo(lx - 9, groundY - 34); ctx.moveTo(lx + 9, groundY - 12); ctx.lineTo(lx + 9, groundY - 34); ctx.stroke(); if (state === "angle" || state === "power") { ctx.strokeStyle = "#c0392b"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(lx - 9, groundY - 32); ctx.lineTo(px - camX, py); ctx.lineTo(lx + 9, groundY - 32); ctx.stroke(); } ctx.lineWidth = 1; }
       ctx.textBaseline = "middle";
-      for (const it of items) { if (it.got) continue; const sx = it.x - camX; if (sx < -30 || sx > W + 30) continue; ctx.font = (it.t === "coin" ? "17px" : "22px") + " serif"; ctx.fillText(EMO[it.t], sx, it.y); }
+      for (const it of items) { if (it.got) continue; const sx = it.x - camX; if (sx < -30 || sx > W + 30) continue; if (it.t === "coin") vCoin(sx, it.y); else if (it.t === "balloon") vBalloon(sx, it.y); else if (it.t === "rocket") vRocket(sx, it.y); else vBomb(sx, it.y); }
       if (state === "angle" || state === "power") {
         if (state === "angle") { angle += angDir * 1.6; if (angle >= 80) { angle = 80; angDir = -1; } if (angle <= 15) { angle = 15; angDir = 1; } }
         const bx = startX - camX, by = groundY - 12, a = angle * Math.PI / 180;
@@ -1990,11 +2005,11 @@ switchTab("chat");
       for (let i = 0; i < trail.length; i++) { const t = trail[i]; ctx.fillStyle = "rgba(255,255,255," + (i / trail.length * 0.5) + ")"; ctx.beginPath(); ctx.arc(t.x - camX, t.y, 3, 0, 7); ctx.fill(); }
       ctx.fillStyle = "rgba(150,120,80,.6)"; for (const d of dust) { ctx.beginPath(); ctx.arc(d.x - camX, d.y, 2.5, 0, 7); ctx.fill(); }
       for (const p of pops) { ctx.globalAlpha = Math.max(0, p.life / 30); ctx.fillStyle = p.c; ctx.font = "bold 14px sans-serif"; ctx.fillText(p.txt, p.x - camX, p.y); } ctx.globalAlpha = 1;
-      const sx = px - camX; ctx.save(); ctx.translate(sx, py); ctx.rotate(state === "fly" ? Math.atan2(vy, vx) : -0.3); ctx.font = "28px serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("🐿️", 0, 0); ctx.restore();
+      vSquirrel(px - camX, py, state === "fly" ? Math.atan2(vy, vx) : -0.28);
       ctx.restore();
       if (state === "fly") pRun.textContent = "거리 " + dist + "m · 🪙 " + coinRun + (bounces ? " · 바운스 " + bounces : "");
     }
-    function loop() { if (state === "fly") step(); draw(); raf = requestAnimationFrame(loop); }
+    function loop() { try { if (state === "fly") step(); draw(); } catch (e) {} raf = requestAnimationFrame(loop); }
     toMenu(); loop();
   }
 
