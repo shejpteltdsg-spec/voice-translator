@@ -326,6 +326,27 @@
   .plane-steer #pDown { background: linear-gradient(135deg,#fb923c,#f97316); }
   .plane-steer button:active { filter: brightness(1.18); }
   .plane-btn:disabled { opacity: .6; cursor: default; }
+  .plane-speed { display: flex; align-items: center; gap: 9px; width: 100%; max-width: 460px; margin: 10px 0 2px; font-size: 13px; font-weight: 700; }
+  .plane-speed input[type=range] { flex: 1; accent-color: #f59e0b; height: 22px; }
+  .plane-speed b { color: #ffd76a; min-width: 46px; text-align: right; }
+  .g2-top, .mem-top { display: flex; justify-content: space-between; width: 100%; max-width: 380px; margin: 6px 0 12px; font-size: 15px; font-weight: 800; }
+  .g2-board { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; width: 100%; max-width: 340px; aspect-ratio: 1; background: rgba(0,0,0,.28); border-radius: 12px; padding: 8px; touch-action: none; }
+  .g2cell { border-radius: 8px; display: grid; place-items: center; font-weight: 800; transition: background .12s; }
+  .g2-msg, .mem-msg { min-height: 20px; margin: 12px 0 6px; font-size: 15px; font-weight: 800; text-align: center; color: #ffd76a; }
+  .g2-ctrl { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 4px; }
+  .g2-lr { display: flex; gap: 8px; }
+  .g2-ctrl button { width: 58px; height: 46px; font-size: 20px; border: none; border-radius: 12px; background: rgba(255,255,255,.14); color: #fff; cursor: pointer; touch-action: manipulation; }
+  .g2-ctrl button:active { background: rgba(255,255,255,.3); }
+  .g2-new { margin-top: 14px; font-family: inherit; font-size: 15px; font-weight: 800; border: none; border-radius: 12px; padding: 11px 22px; background: linear-gradient(135deg,#f59e0b,#f97316); color: #fff; cursor: pointer; }
+  .mem-board { display: grid; grid-template-columns: repeat(4, 1fr); gap: 9px; width: 100%; max-width: 330px; }
+  .mem-card { aspect-ratio: 1; border: none; border-radius: 11px; cursor: pointer; position: relative; font-size: 30px; display: grid; place-items: center; padding: 0; background: transparent; }
+  .mem-card .mem-face, .mem-card .mem-back { position: absolute; inset: 0; display: grid; place-items: center; border-radius: 11px; backface-visibility: hidden; }
+  .mem-card .mem-back { background: linear-gradient(135deg,#6d5cf0,#8b7cf6); color: rgba(255,255,255,.85); font-weight: 800; }
+  .mem-card .mem-face { background: #fff; opacity: 0; transition: opacity .15s; }
+  .mem-card.open .mem-face, .mem-card.done .mem-face { opacity: 1; }
+  .mem-card.open .mem-back, .mem-card.done .mem-back { opacity: 0; }
+  .mem-card.done { opacity: .5; }
+  .mem-card:active { transform: scale(.96); }
   .omok-mode { display: flex; gap: 8px; margin-bottom: 10px; }
   .om-mode { font-family: inherit; font-size: 13px; font-weight: 700; border: 2px solid rgba(255,255,255,.25); background: rgba(255,255,255,.1); color: #fff; border-radius: 999px; padding: 8px 14px; cursor: pointer; }
   .om-mode.sel { background: #fff; color: #201c3f; border-color: #fff; }
@@ -382,9 +403,11 @@
       <button class="settings-x" id="gamesClose">✕</button>
     </div>
     <div class="gamehub" id="gameHub">
-      <button class="gamecard" data-game="plane"><span class="gc-emoji">🛩️</span><span class="gc-name">비행기 멀리 날리기</span><span class="gc-best" id="best-plane"></span></button>
-      <button class="gamecard" data-game="omok"><span class="gc-emoji">⚫</span><span class="gc-name">오목 (둘이서)</span></button>
-      <div class="game-soon">🔜 곧 추가: 스도쿠 · 체스 · 낱말퀴즈 · 친구 순위 경쟁</div>
+      <button class="gamecard" data-game="plane"><span class="gc-emoji">🐿️</span><span class="gc-name">다람쥐 멀리 날리기</span><span class="gc-best" id="best-plane"></span></button>
+      <button class="gamecard" data-game="g2048"><span class="gc-emoji">🔢</span><span class="gc-name">2048 (숫자 합치기)</span><span class="gc-best" id="best-2048"></span></button>
+      <button class="gamecard" data-game="memory"><span class="gc-emoji">🃏</span><span class="gc-name">기억력 카드 짝맞추기</span><span class="gc-best" id="best-memory"></span></button>
+      <button class="gamecard" data-game="omok"><span class="gc-emoji">⚫</span><span class="gc-name">오목 (AI·둘이서)</span></button>
+      <div class="game-soon">🔜 곧 추가: 스도쿠 · 낱말퀴즈 · 친구 순위 경쟁</div>
     </div>
     <div class="gamestage" id="gameStage"></div>
   </div>
@@ -1850,11 +1873,15 @@ switchTab("chat");
     stopRaf(); stage.innerHTML = ""; stage.classList.remove("on");
     hub.style.display = "flex"; back.style.display = "none"; title.textContent = "🎮 게임";
     const bp = document.getElementById("best-plane"); if (bp) { const b = getBest("plane"); bp.textContent = b ? ("최고 " + b + "m") : ""; }
+    const b2 = document.getElementById("best-2048"); if (b2) { const b = getBest("2048"); b2.textContent = b ? ("최고 " + b + "점") : ""; }
+    const bm = document.getElementById("best-memory"); if (bm) { let b = 0; try { b = parseInt(localStorage.getItem("gbest_memory_moves")) || 0; } catch (_) {} bm.textContent = b ? ("최소 " + b + "번") : ""; }
   }
   function showGame(name) {
     stopRaf(); stage.innerHTML = ""; hub.style.display = "none";
     stage.classList.add("on"); back.style.display = "block";
-    if (name === "plane") { title.textContent = "🛩️ 비행기 날리기"; buildPlane(); }
+    if (name === "plane") { title.textContent = "🐿️ 다람쥐 날리기"; buildPlane(); }
+    else if (name === "g2048") { title.textContent = "🔢 2048"; buildG2048(); }
+    else if (name === "memory") { title.textContent = "🃏 기억력 카드"; buildMemory(); }
     else if (name === "omok") { title.textContent = "⚫ 오목"; buildOmok(); }
   }
   document.getElementById("gamesBtn").onclick = () => { modal.classList.add("open"); openHub(); };
@@ -1862,10 +1889,87 @@ switchTab("chat");
   back.onclick = openHub;
   hub.querySelectorAll(".gamecard").forEach(c => c.onclick = () => showGame(c.getAttribute("data-game")));
 
+  function buildG2048() {
+    const N = 4;
+    stage.innerHTML =
+      '<div class="g2-top"><span id="g2score">점수 0</span><span id="g2best">🏆 ' + getBest("2048") + '</span></div>' +
+      '<div class="g2-board" id="g2board"></div>' +
+      '<div class="g2-msg" id="g2msg"></div>' +
+      '<div class="g2-ctrl"><button data-d="up">⬆</button><div class="g2-lr"><button data-d="left">⬅</button><button data-d="down">⬇</button><button data-d="right">➡</button></div></div>' +
+      '<button class="g2-new" id="g2new">🔄 새 게임</button>' +
+      '<div class="plane-hint">같은 숫자를 밀어 합치기! <b>화살표</b> 버튼 또는 보드에서 <b>스와이프</b>. 목표 2048 🎯</div>';
+    const boardEl = document.getElementById("g2board"), scoreEl = document.getElementById("g2score"), bestEl = document.getElementById("g2best"), msgEl = document.getElementById("g2msg");
+    const COLORS = { 2: "#eee4da", 4: "#ede0c8", 8: "#f2b179", 16: "#f59563", 32: "#f67c5f", 64: "#f65e3b", 128: "#edcf72", 256: "#edcc61", 512: "#edc850", 1024: "#edc53f", 2048: "#edc22e" };
+    const cells = [];
+    for (let i = 0; i < N * N; i++) { const c = document.createElement("div"); c.className = "g2cell"; boardEl.appendChild(c); cells.push(c); }
+    let grid, score, over, wonShown;
+    function addTile() { const e = []; for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (!grid[y][x]) e.push([x, y]); if (!e.length) return; const [x, y] = e[Math.floor(Math.random() * e.length)]; grid[y][x] = Math.random() < 0.9 ? 2 : 4; }
+    function render() {
+      for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) { const v = grid[y][x], c = cells[y * N + x]; c.textContent = v || ""; c.style.background = v ? (COLORS[v] || "#3c3a32") : "rgba(238,228,218,.35)"; c.style.color = v && v <= 4 ? "#776e65" : "#f9f6f2"; c.style.fontSize = v >= 1024 ? "18px" : v >= 128 ? "22px" : "26px"; }
+      scoreEl.textContent = "점수 " + score; bestEl.textContent = "🏆 " + getBest("2048");
+    }
+    function slide(line) { let a = line.filter(v => v), gained = 0; for (let i = 0; i < a.length - 1; i++) { if (a[i] === a[i + 1]) { a[i] *= 2; gained += a[i]; a.splice(i + 1, 1); } } while (a.length < N) a.push(0); return { a, gained }; }
+    function move(dir) {
+      if (over) return; let moved = false;
+      for (let i = 0; i < N; i++) {
+        const line = [];
+        for (let j = 0; j < N; j++) line.push(dir === "left" ? grid[i][j] : dir === "right" ? grid[i][N - 1 - j] : dir === "up" ? grid[j][i] : grid[N - 1 - j][i]);
+        const before = line.join(","), { a, gained } = slide(line); score += gained; if (a.join(",") !== before) moved = true;
+        for (let j = 0; j < N; j++) { const v = a[j]; if (dir === "left") grid[i][j] = v; else if (dir === "right") grid[i][N - 1 - j] = v; else if (dir === "up") grid[j][i] = v; else grid[N - 1 - j][i] = v; }
+      }
+      if (!moved) return;
+      addTile(); render(); setBest("2048", score);
+      if (!wonShown) { for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (grid[y][x] >= 2048) { wonShown = true; msgEl.textContent = "🎉 2048 달성! 계속 도전!"; } }
+      if (isOver()) { over = true; msgEl.textContent = "게임 오버! 최종 " + score + "점"; }
+    }
+    function isOver() { for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) { if (!grid[y][x]) return false; if (x < N - 1 && grid[y][x] === grid[y][x + 1]) return false; if (y < N - 1 && grid[y][x] === grid[y + 1][x]) return false; } return true; }
+    function reset() { grid = Array.from({ length: N }, () => Array(N).fill(0)); score = 0; over = false; wonShown = false; msgEl.textContent = ""; addTile(); addTile(); render(); }
+    stage.querySelectorAll(".g2-ctrl button").forEach(b => b.onclick = () => move(b.dataset.d));
+    document.getElementById("g2new").onclick = reset;
+    let sx = 0, sy = 0;
+    boardEl.addEventListener("pointerdown", e => { sx = e.clientX; sy = e.clientY; });
+    boardEl.addEventListener("pointerup", e => { const dx = e.clientX - sx, dy = e.clientY - sy; if (Math.abs(dx) < 24 && Math.abs(dy) < 24) return; if (Math.abs(dx) > Math.abs(dy)) move(dx > 0 ? "right" : "left"); else move(dy > 0 ? "down" : "up"); });
+    reset();
+  }
+
+  function buildMemory() {
+    const FACES = ["🍎", "🍌", "🍇", "🍓", "🍑", "🍉", "🥝", "🍍"];
+    function memBest() { try { return parseInt(localStorage.getItem("gbest_memory_moves")) || 0; } catch (_) { return 0; } }
+    stage.innerHTML =
+      '<div class="mem-top"><span id="memMoves">시도 0</span><span id="memPairs">0/8</span><span id="memBest">🏆 ' + (memBest() ? memBest() + "번" : "-") + '</span></div>' +
+      '<div class="mem-board" id="memBoard"></div>' +
+      '<div class="mem-msg" id="memMsg"></div>' +
+      '<button class="g2-new" id="memNew">🔄 새 게임</button>' +
+      '<div class="plane-hint">카드를 뒤집어 같은 그림 <b>짝</b>을 맞추세요! 적은 시도로 완성하면 신기록 🏆</div>';
+    const boardEl = document.getElementById("memBoard"), movesEl = document.getElementById("memMoves"), pairsEl = document.getElementById("memPairs"), bestEl = document.getElementById("memBest"), msgEl = document.getElementById("memMsg");
+    let deck, flipped, matched, moves, lock;
+    function update() { movesEl.textContent = "시도 " + moves; pairsEl.textContent = matched + "/8"; }
+    function flip(idx) {
+      const card = deck[idx];
+      if (lock || card.el.classList.contains("open") || card.el.classList.contains("done")) return;
+      card.el.classList.add("open"); flipped.push(idx);
+      if (flipped.length === 2) {
+        moves++; update(); lock = true; const [a, b] = flipped;
+        if (deck[a].f === deck[b].f) { setTimeout(() => { deck[a].el.classList.add("done"); deck[b].el.classList.add("done"); flipped = []; lock = false; matched++; update(); if (matched === 8) finish(); }, 320); }
+        else { setTimeout(() => { deck[a].el.classList.remove("open"); deck[b].el.classList.remove("open"); flipped = []; lock = false; }, 720); }
+      }
+    }
+    function finish() { const prev = memBest(); let rec = ""; if (!prev || moves < prev) { try { localStorage.setItem("gbest_memory_moves", String(moves)); } catch (_) {} rec = " 🏆 신기록!"; } bestEl.textContent = "🏆 " + memBest() + "번"; msgEl.textContent = "🎉 완성! " + moves + "번 만에 성공!" + rec; }
+    function reset() {
+      deck = FACES.concat(FACES).map((f, i) => ({ f, id: i })); for (let i = deck.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); const t = deck[i]; deck[i] = deck[j]; deck[j] = t; }
+      flipped = []; matched = 0; moves = 0; lock = false; msgEl.textContent = ""; boardEl.innerHTML = "";
+      deck.forEach((card, idx) => { const el = document.createElement("button"); el.className = "mem-card"; el.innerHTML = '<span class="mem-face">' + card.f + '</span><span class="mem-back">?</span>'; el.onclick = () => flip(idx); boardEl.appendChild(el); card.el = el; });
+      update();
+    }
+    document.getElementById("memNew").onclick = reset;
+    reset();
+  }
+
   function buildPlane() {
     stage.innerHTML =
       '<div class="plane-top"><span id="pBest">🏆 ' + getBest("plane") + 'm</span><span id="pCoins">🪙 0</span></div>' +
       '<canvas class="plane-canvas" id="pCanvas" width="460" height="320"></canvas>' +
+      '<div class="plane-speed" id="pSpeedBar"><span>🐢 게임 속도</span><input type="range" id="pSpeed" min="30" max="120" step="5"><b id="pSpeedVal">0.5x</b></div>' +
       '<div class="plane-run" id="pRun"></div>' +
       '<div class="plane-steer" id="pSteer"><button id="pUp">⬆<span>상승·활공</span></button><button id="pDown">⬇<span>하강·가속</span></button></div>' +
       '<button class="plane-btn" id="pBtn">🎯 발사하기!</button>' +
@@ -1875,7 +1979,11 @@ switchTab("chat");
     const W = cv.width, H = cv.height, groundY = H - 30, startX = 46;
     const btn = document.getElementById("pBtn"), pBest = document.getElementById("pBest"), pCoins = document.getElementById("pCoins"),
       pRun = document.getElementById("pRun"), pShop = document.getElementById("pShop"), pHint = document.getElementById("pHint"),
-      pSteer = document.getElementById("pSteer"), pUp = document.getElementById("pUp"), pDown = document.getElementById("pDown");
+      pSteer = document.getElementById("pSteer"), pUp = document.getElementById("pUp"), pDown = document.getElementById("pDown"),
+      pSpeed = document.getElementById("pSpeed"), pSpeedVal = document.getElementById("pSpeedVal");
+    let speedMul; try { speedMul = parseFloat(localStorage.getItem("plane_speed")); } catch (_) {} if (!(speedMul >= 0.3 && speedMul <= 1.2)) speedMul = 0.5;
+    pSpeed.value = Math.round(speedMul * 100); pSpeedVal.textContent = speedMul.toFixed(2).replace(/0$/, "") + "x";
+    pSpeed.oninput = () => { speedMul = (+pSpeed.value) / 100; pSpeedVal.textContent = speedMul.toFixed(2).replace(/0$/, "") + "x"; try { localStorage.setItem("plane_speed", String(speedMul)); } catch (_) {} };
     const UPG = [
       { key: "power", icon: "💪", name: "발사 파워", max: 5, base: 60, step: 55, desc: "더 세게 발사" },
       { key: "glide", icon: "🪂", name: "활공력", max: 5, base: 80, step: 60, desc: "더 평평하게 오래 활공" },
@@ -2019,11 +2127,11 @@ switchTab("chat");
       ctx.textBaseline = "middle";
       for (const it of items) { if (it.got) continue; const sx = it.x - camX; if (sx < -30 || sx > W + 30) continue; const iy = Y(it.y); if (it.t === "coin") vCoin(sx, iy); else if (it.t === "balloon") vBalloon(sx, iy); else if (it.t === "rocket") vRocket(sx, iy); else vBomb(sx, iy); }
       if (state === "angle" || state === "power") {
-        if (state === "angle") { angle += angDir * 1.6; if (angle >= 80) { angle = 80; angDir = -1; } if (angle <= 15) { angle = 15; angDir = 1; } }
+        if (state === "angle") { angle += angDir * 1.6 * speedMul; if (angle >= 80) { angle = 80; angDir = -1; } if (angle <= 15) { angle = 15; angDir = 1; } }
         const bx = startX - camX, by = gY - 12, a = angle * Math.PI / 180;
         ctx.strokeStyle = "#ef4444"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx + Math.cos(a) * 46, by - Math.sin(a) * 46); ctx.stroke(); ctx.lineWidth = 1;
         ctx.fillStyle = "#ef4444"; ctx.textAlign = "left"; ctx.font = "bold 12px sans-serif"; ctx.fillText(Math.round(angle) + "°", bx + 8, by - 44); ctx.textAlign = "center";
-        if (state === "power") { power += powDir * 2.4; if (power >= 100) { power = 100; powDir = -1; } if (power <= 0) { power = 0; powDir = 1; } ctx.fillStyle = "#00000022"; ctx.fillRect(14, 18, 180, 16); ctx.fillStyle = power > 66 ? "#ef4444" : power > 33 ? "#f59e0b" : "#22c55e"; ctx.fillRect(14, 18, 180 * power / 100, 16); ctx.strokeStyle = "#fff"; ctx.strokeRect(14, 18, 180, 16); ctx.fillStyle = "#fff"; ctx.textAlign = "left"; ctx.font = "bold 11px sans-serif"; ctx.fillText("파워 " + Math.round(power) + "%", 20, 30); ctx.textAlign = "center"; }
+        if (state === "power") { power += powDir * 2.4 * speedMul; if (power >= 100) { power = 100; powDir = -1; } if (power <= 0) { power = 0; powDir = 1; } ctx.fillStyle = "#00000022"; ctx.fillRect(14, 18, 180, 16); ctx.fillStyle = power > 66 ? "#ef4444" : power > 33 ? "#f59e0b" : "#22c55e"; ctx.fillRect(14, 18, 180 * power / 100, 16); ctx.strokeStyle = "#fff"; ctx.strokeRect(14, 18, 180, 16); ctx.fillStyle = "#fff"; ctx.textAlign = "left"; ctx.font = "bold 11px sans-serif"; ctx.fillText("파워 " + Math.round(power) + "%", 20, 30); ctx.textAlign = "center"; }
       }
       for (let i = 0; i < trail.length; i++) { const t = trail[i]; ctx.fillStyle = "rgba(255,255,255," + (i / trail.length * 0.5) + ")"; ctx.beginPath(); ctx.arc(t.x - camX, Y(t.y), 3, 0, 7); ctx.fill(); }
       ctx.fillStyle = "rgba(150,120,80,.6)"; for (const d of dust) { ctx.beginPath(); ctx.arc(d.x - camX, Y(d.y), 2.5, 0, 7); ctx.fill(); }
@@ -2032,7 +2140,8 @@ switchTab("chat");
       ctx.restore();
       if (state === "fly") pRun.textContent = "거리 " + dist + "m · 🪙 " + coinRun + (bounces ? " · 바운스 " + bounces : "");
     }
-    function loop() { try { if (state === "fly") step(); draw(); } catch (e) {} raf = requestAnimationFrame(loop); }
+    let acc = 0;
+    function loop() { try { if (state === "fly") { acc += speedMul; let guard = 0; while (acc >= 1 && guard++ < 4) { acc -= 1; step(); if (state !== "fly") break; } } else acc = 0; draw(); } catch (e) {} raf = requestAnimationFrame(loop); }
     toMenu(); loop();
   }
 
