@@ -347,6 +347,48 @@
   .mem-card.open .mem-back, .mem-card.done .mem-back { opacity: 0; }
   .mem-card.done { opacity: .5; }
   .mem-card:active { transform: scale(.96); }
+  .game-info { display: flex; justify-content: space-between; align-items: center; gap: 10px; width: 100%; max-width: 380px; margin: 6px 0 12px; font-size: 15px; font-weight: 800; }
+  .game-actions { display: flex; gap: 10px; margin-top: 14px; }
+  .game-btn { font-family: inherit; font-size: 15px; font-weight: 800; border: none; border-radius: 12px; padding: 11px 20px; background: linear-gradient(135deg,#6d5cf0,#8b7cf6); color: #fff; cursor: pointer; }
+  .game-btn:active { filter: brightness(1.12); }
+  .su-mini { font-family: inherit; font-size: 13px; font-weight: 800; border: 2px solid rgba(255,255,255,.3); background: rgba(255,255,255,.12); color: #fff; border-radius: 999px; padding: 6px 12px; cursor: pointer; }
+  .su-mini.on { background: #f59e0b; color: #201c3f; border-color: #f59e0b; }
+  .su-board { display: grid; grid-template-columns: repeat(9,1fr); width: 100%; max-width: 360px; aspect-ratio: 1; background: #201c3f; border: 3px solid #cdb8ff; border-radius: 8px; }
+  .su-cell { display: grid; place-items: center; font-size: 17px; font-weight: 700; color: #cdb8ff; border: .5px solid rgba(205,184,255,.25); cursor: pointer; }
+  .su-cell.su-given { color: #fff; font-weight: 900; }
+  .su-cell.su-sel { background: rgba(139,124,246,.5); }
+  .su-cell.su-err { color: #ff6b6b; background: rgba(255,80,80,.18); }
+  .su-cell.su-br { border-right: 2px solid #cdb8ff; }
+  .su-cell.su-bb { border-bottom: 2px solid #cdb8ff; }
+  .su-pad { display: grid; grid-template-columns: repeat(5,1fr); gap: 6px; width: 100%; max-width: 360px; margin-top: 12px; }
+  .su-num { font-family: inherit; font-size: 18px; font-weight: 800; border: none; border-radius: 10px; padding: 12px 0; background: rgba(255,255,255,.14); color: #fff; cursor: pointer; }
+  .su-num:active { background: rgba(255,255,255,.3); }
+  .bi-drawn { font-size: 16px; font-weight: 800; margin-bottom: 12px; color: #ffd76a; }
+  .bi-cards { display: flex; gap: 12px; width: 100%; max-width: 400px; }
+  .bi-col { flex: 1; display: flex; flex-direction: column; align-items: center; }
+  .bi-label { font-size: 13px; font-weight: 800; margin-bottom: 6px; }
+  .bi-board { display: grid; grid-template-columns: repeat(5,1fr); gap: 3px; width: 100%; }
+  .bi-cell { aspect-ratio: 1; display: grid; place-items: center; font-size: 13px; font-weight: 700; background: rgba(255,255,255,.1); border-radius: 5px; color: #fff; }
+  .bi-cell.bi-hit { background: #f59e0b; color: #201c3f; }
+  .bi-lines { font-size: 13px; font-weight: 800; margin-top: 7px; color: #ffd76a; }
+  .tt-board { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; width: 100%; max-width: 300px; aspect-ratio: 1; }
+  .tt-cell { border: none; border-radius: 14px; background: rgba(255,255,255,.12); font-size: 44px; cursor: pointer; display: grid; place-items: center; }
+  .tt-cell:active { background: rgba(255,255,255,.24); }
+  .mn-board { display: grid; width: 100%; max-width: 360px; aspect-ratio: 1; gap: 2px; background: rgba(0,0,0,.25); padding: 4px; border-radius: 8px; touch-action: manipulation; }
+  .mn-cell { border: none; border-radius: 4px; background: linear-gradient(145deg,#8b7cf6,#6d5cf0); font-size: 14px; font-weight: 800; cursor: pointer; padding: 0; color: #fff; display: grid; place-items: center; }
+  .mn-cell.mn-open { background: rgba(255,255,255,.14); cursor: default; }
+  .mn-1 { color: #6ec1ff; } .mn-2 { color: #74e07a; } .mn-3 { color: #ff8a8a; } .mn-4 { color: #c39bff; } .mn-5 { color: #ffc06e; } .mn-6 { color: #6ee0d0; } .mn-7 { color: #ffb3e6; } .mn-8 { color: #ddd; }
+  .sl-board { display: grid; grid-template-columns: repeat(4,1fr); gap: 6px; width: 100%; max-width: 320px; aspect-ratio: 1; }
+  .sl-cell { border: none; border-radius: 12px; background: linear-gradient(145deg,#f59e0b,#f97316); font-size: 26px; font-weight: 800; color: #fff; cursor: pointer; }
+  .sl-cell.sl-empty { background: transparent; cursor: default; }
+  .sl-cell:active { filter: brightness(1.12); }
+  .si-pad { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; max-width: 300px; aspect-ratio: 1; }
+  .si-btn { border: none; border-radius: 18px; cursor: pointer; opacity: .55; transition: opacity .08s, transform .08s; }
+  .si-btn.si-on { opacity: 1; transform: scale(1.04); box-shadow: 0 0 22px rgba(255,255,255,.6); }
+  .sc-board { display: grid; grid-template-columns: repeat(5,1fr); gap: 6px; width: 100%; max-width: 340px; aspect-ratio: 1; }
+  .sc-cell { border: none; border-radius: 10px; background: rgba(255,255,255,.14); font-size: 20px; font-weight: 800; color: #fff; cursor: pointer; }
+  .sc-cell.sc-done { background: #22c55e; color: #06331a; }
+  .sc-cell.sc-wrong { background: #ef4444; }
   .omok-mode { display: flex; gap: 8px; margin-bottom: 10px; }
   .om-mode { font-family: inherit; font-size: 13px; font-weight: 700; border: 2px solid rgba(255,255,255,.25); background: rgba(255,255,255,.1); color: #fff; border-radius: 999px; padding: 8px 14px; cursor: pointer; }
   .om-mode.sel { background: #fff; color: #201c3f; border-color: #fff; }
@@ -403,11 +445,17 @@
       <button class="settings-x" id="gamesClose">✕</button>
     </div>
     <div class="gamehub" id="gameHub">
-      <button class="gamecard" data-game="plane"><span class="gc-emoji">🐿️</span><span class="gc-name">다람쥐 멀리 날리기</span><span class="gc-best" id="best-plane"></span></button>
+      <button class="gamecard" data-game="sudoku"><span class="gc-emoji">🧩</span><span class="gc-name">스도쿠</span></button>
+      <button class="gamecard" data-game="bingo"><span class="gc-emoji">🎱</span><span class="gc-name">빙고 (컴퓨터 대결)</span></button>
       <button class="gamecard" data-game="g2048"><span class="gc-emoji">🔢</span><span class="gc-name">2048 (숫자 합치기)</span><span class="gc-best" id="best-2048"></span></button>
       <button class="gamecard" data-game="memory"><span class="gc-emoji">🃏</span><span class="gc-name">기억력 카드 짝맞추기</span><span class="gc-best" id="best-memory"></span></button>
       <button class="gamecard" data-game="omok"><span class="gc-emoji">⚫</span><span class="gc-name">오목 (AI·둘이서)</span></button>
-      <div class="game-soon">🔜 곧 추가: 스도쿠 · 낱말퀴즈 · 친구 순위 경쟁</div>
+      <button class="gamecard" data-game="tictac"><span class="gc-emoji">❌</span><span class="gc-name">틱택토 (AI 대결)</span></button>
+      <button class="gamecard" data-game="mines"><span class="gc-emoji">💣</span><span class="gc-name">지뢰찾기</span></button>
+      <button class="gamecard" data-game="slide"><span class="gc-emoji">🔢</span><span class="gc-name">15 슬라이드 퍼즐</span></button>
+      <button class="gamecard" data-game="simon"><span class="gc-emoji">🎨</span><span class="gc-name">사이먼 (색깔 기억)</span></button>
+      <button class="gamecard" data-game="schulte"><span class="gc-emoji">⚡</span><span class="gc-name">숫자 순서 (집중력)</span></button>
+      <div class="game-soon">🔜 곧 추가: 친구 순위 경쟁 (온라인 랭킹)</div>
     </div>
     <div class="gamestage" id="gameStage"></div>
   </div>
@@ -1864,25 +1912,32 @@ switchTab("chat");
   const stage = document.getElementById("gameStage");
   const back = document.getElementById("gameBack");
   const title = document.getElementById("gameTitle");
-  let raf = null;
-  function stopRaf() { if (raf) { cancelAnimationFrame(raf); raf = null; } }
+  let raf = null, cleanups = [];
+  function runCleanups() { cleanups.forEach(f => { try { f(); } catch (_) {} }); cleanups = []; }
+  function onCleanup(fn) { cleanups.push(fn); }
+  function stopRaf() { if (raf) { cancelAnimationFrame(raf); raf = null; } runCleanups(); }
   function getBest(k) { try { return parseInt(localStorage.getItem("gbest_" + k)) || 0; } catch (_) { return 0; } }
   function setBest(k, v) { try { if (v > getBest(k)) localStorage.setItem("gbest_" + k, String(v)); } catch (_) {} }
 
   function openHub() {
     stopRaf(); stage.innerHTML = ""; stage.classList.remove("on");
     hub.style.display = "flex"; back.style.display = "none"; title.textContent = "🎮 게임";
-    const bp = document.getElementById("best-plane"); if (bp) { const b = getBest("plane"); bp.textContent = b ? ("최고 " + b + "m") : ""; }
     const b2 = document.getElementById("best-2048"); if (b2) { const b = getBest("2048"); b2.textContent = b ? ("최고 " + b + "점") : ""; }
     const bm = document.getElementById("best-memory"); if (bm) { let b = 0; try { b = parseInt(localStorage.getItem("gbest_memory_moves")) || 0; } catch (_) {} bm.textContent = b ? ("최소 " + b + "번") : ""; }
   }
   function showGame(name) {
     stopRaf(); stage.innerHTML = ""; hub.style.display = "none";
     stage.classList.add("on"); back.style.display = "block";
-    if (name === "plane") { title.textContent = "🐿️ 다람쥐 날리기"; buildPlane(); }
+    if (name === "sudoku") { title.textContent = "🧩 스도쿠"; buildSudoku(); }
+    else if (name === "bingo") { title.textContent = "🎱 빙고"; buildBingo(); }
     else if (name === "g2048") { title.textContent = "🔢 2048"; buildG2048(); }
     else if (name === "memory") { title.textContent = "🃏 기억력 카드"; buildMemory(); }
     else if (name === "omok") { title.textContent = "⚫ 오목"; buildOmok(); }
+    else if (name === "tictac") { title.textContent = "❌ 틱택토"; buildTicTac(); }
+    else if (name === "mines") { title.textContent = "💣 지뢰찾기"; buildMines(); }
+    else if (name === "slide") { title.textContent = "🔢 15 퍼즐"; buildSlide(); }
+    else if (name === "simon") { title.textContent = "🎨 사이먼"; buildSimon(); }
+    else if (name === "schulte") { title.textContent = "⚡ 숫자 순서"; buildSchulte(); }
   }
   document.getElementById("gamesBtn").onclick = () => { modal.classList.add("open"); openHub(); };
   document.getElementById("gamesClose").onclick = () => { modal.classList.remove("open"); stopRaf(); };
@@ -1962,6 +2017,157 @@ switchTab("chat");
       update();
     }
     document.getElementById("memNew").onclick = reset;
+    reset();
+  }
+
+  function buildSudoku() {
+    stage.innerHTML =
+      '<div class="game-info"><span id="suMsg">빈 칸을 채우세요</span><button class="su-mini" id="suCheck">✓ 확인</button></div>' +
+      '<div class="su-board" id="suBoard"></div>' +
+      '<div class="su-pad" id="suPad"></div>' +
+      '<div class="game-actions"><button class="game-btn" id="suNew">🔄 새 퍼즐</button></div>' +
+      '<div class="plane-hint">빈 칸을 누르고 아래 숫자를 눌러 채우세요. 가로·세로·3×3 칸에 1~9가 한 번씩!</div>';
+    const boardEl = document.getElementById("suBoard"), padEl = document.getElementById("suPad"), msgEl = document.getElementById("suMsg");
+    const sol = Array.from({ length: 9 }, () => Array(9).fill(0));
+    function ok(b, r, c, v) { for (let i = 0; i < 9; i++) if (b[r][i] === v || b[i][c] === v) return false; const br = r - r % 3, bc = c - c % 3; for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) if (b[br + i][bc + j] === v) return false; return true; }
+    function fill(b, p) { if (p === 81) return true; const r = p / 9 | 0, c = p % 9; if (b[r][c]) return fill(b, p + 1); const nums = [1, 2, 3, 4, 5, 6, 7, 8, 9]; for (let i = 8; i > 0; i--) { const j = Math.random() * (i + 1) | 0; const t = nums[i]; nums[i] = nums[j]; nums[j] = t; } for (const v of nums) if (ok(b, r, c, v)) { b[r][c] = v; if (fill(b, p + 1)) return true; b[r][c] = 0; } return false; }
+    fill(sol, 0);
+    const puzzle = sol.map(r => r.slice()), order = []; for (let i = 0; i < 81; i++) order.push(i); for (let i = 80; i > 0; i--) { const j = Math.random() * (i + 1) | 0; const t = order[i]; order[i] = order[j]; order[j] = t; }
+    for (let k = 0; k < 45; k++) puzzle[order[k] / 9 | 0][order[k] % 9] = 0;
+    const given = puzzle.map(r => r.map(v => v !== 0)), cur = puzzle.map(r => r.slice());
+    let sel = -1; const cells = [];
+    for (let i = 0; i < 81; i++) { const c = document.createElement("div"); c.className = "su-cell"; const cc = i % 9, r = i / 9 | 0; if (cc % 3 === 2 && cc !== 8) c.classList.add("su-br"); if (r % 3 === 2 && r !== 8) c.classList.add("su-bb"); c.onclick = () => { if (!given[r][cc]) { sel = i; render(); } }; boardEl.appendChild(c); cells.push(c); }
+    for (let n = 1; n <= 9; n++) { const b = document.createElement("button"); b.className = "su-num"; b.textContent = n; b.onclick = () => place(n); padEl.appendChild(b); }
+    const er = document.createElement("button"); er.className = "su-num"; er.textContent = "⌫"; er.onclick = () => place(0); padEl.appendChild(er);
+    function place(n) { if (sel < 0) return; const r = sel / 9 | 0, c = sel % 9; if (given[r][c]) return; cur[r][c] = n; render(); if (cur.every((row, ri) => row.every((v, ci) => v === sol[ri][ci]))) msgEl.textContent = "🎉 완성! 정답입니다!"; }
+    function render() { for (let i = 0; i < 81; i++) { const r = i / 9 | 0, c = i % 9, v = cur[r][c], el = cells[i]; el.textContent = v || ""; el.classList.toggle("su-given", given[r][c]); el.classList.toggle("su-sel", i === sel); el.classList.remove("su-err"); } }
+    document.getElementById("suCheck").onclick = () => { let wrong = 0, filled = 0; for (let i = 0; i < 81; i++) { const r = i / 9 | 0, c = i % 9, v = cur[r][c]; if (v) filled++; if (v && v !== sol[r][c]) { cells[i].classList.add("su-err"); wrong++; } } msgEl.textContent = wrong ? ("❌ 틀린 칸 " + wrong + "개") : filled === 81 ? "🎉 완성! 정답!" : "✓ 지금까진 맞아요!"; };
+    document.getElementById("suNew").onclick = buildSudoku;
+    render();
+  }
+
+  function buildBingo() {
+    const TARGET = 3;
+    stage.innerHTML =
+      '<div class="game-info"><span id="biMsg">번호를 뽑으세요</span></div>' +
+      '<div class="bi-drawn" id="biDrawn">뽑은 번호: -</div>' +
+      '<div class="bi-cards"><div class="bi-col"><div class="bi-label">🙂 나</div><div class="bi-board" id="biMe"></div><div class="bi-lines" id="biMeLines">빙고 0줄</div></div>' +
+      '<div class="bi-col"><div class="bi-label">💻 컴퓨터</div><div class="bi-board" id="biCpu"></div><div class="bi-lines" id="biCpuLines">빙고 0줄</div></div></div>' +
+      '<div class="game-actions"><button class="game-btn" id="biDraw">🎲 번호 뽑기</button><button class="game-btn" id="biNew">🔄 새 게임</button></div>' +
+      '<div class="plane-hint">번호를 뽑으면 양쪽 카드에 자동 표시! 먼저 <b>빙고 ' + TARGET + '줄</b> 만들면 승리 🎉</div>';
+    const meEl = document.getElementById("biMe"), cpuEl = document.getElementById("biCpu"), drawnEl = document.getElementById("biDrawn"), msgEl = document.getElementById("biMsg");
+    const meLn = document.getElementById("biMeLines"), cpuLn = document.getElementById("biCpuLines");
+    let me, cpu, drawn, meMark, cpuMark, over; const meCells = [], cpuCells = [];
+    function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; const t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+    function lines(m) { let n = 0; for (let r = 0; r < 5; r++) if ([0, 1, 2, 3, 4].every(c => m[r * 5 + c])) n++; for (let c = 0; c < 5; c++) if ([0, 1, 2, 3, 4].every(r => m[r * 5 + c])) n++; if ([0, 6, 12, 18, 24].every(i => m[i])) n++; if ([4, 8, 12, 16, 20].every(i => m[i])) n++; return n; }
+    function build() {
+      me = shuffle([...Array(25)].map((_, i) => i + 1)); cpu = shuffle([...Array(25)].map((_, i) => i + 1));
+      drawn = new Set(); meMark = Array(25).fill(false); cpuMark = Array(25).fill(false); over = false;
+      meEl.innerHTML = ""; cpuEl.innerHTML = ""; meCells.length = 0; cpuCells.length = 0;
+      me.forEach(n => { const c = document.createElement("div"); c.className = "bi-cell"; c.textContent = n; meEl.appendChild(c); meCells.push(c); });
+      cpu.forEach(n => { const c = document.createElement("div"); c.className = "bi-cell"; c.textContent = n; cpuEl.appendChild(c); cpuCells.push(c); });
+      drawnEl.textContent = "뽑은 번호: -"; msgEl.textContent = "번호를 뽑으세요"; meLn.textContent = "빙고 0줄"; cpuLn.textContent = "빙고 0줄";
+    }
+    document.getElementById("biDraw").onclick = () => {
+      if (over) return; const avail = []; for (let n = 1; n <= 25; n++) if (!drawn.has(n)) avail.push(n); if (!avail.length) return;
+      const n = avail[Math.random() * avail.length | 0]; drawn.add(n); drawnEl.textContent = "뽑은 번호: " + n;
+      const mi = me.indexOf(n); if (mi >= 0) { meMark[mi] = true; meCells[mi].classList.add("bi-hit"); }
+      const ci = cpu.indexOf(n); if (ci >= 0) { cpuMark[ci] = true; cpuCells[ci].classList.add("bi-hit"); }
+      const ml = lines(meMark), cl = lines(cpuMark); meLn.textContent = "빙고 " + ml + "줄"; cpuLn.textContent = "빙고 " + cl + "줄";
+      if (ml >= TARGET || cl >= TARGET) { over = true; msgEl.textContent = ml >= TARGET && cl >= TARGET ? "🤝 동시 빙고! 무승부" : ml >= TARGET ? "🎉 내가 빙고 승리!" : "😢 컴퓨터 승리!"; }
+    };
+    document.getElementById("biNew").onclick = build;
+    build();
+  }
+
+  function buildTicTac() {
+    stage.innerHTML =
+      '<div class="game-info"><span id="ttMsg">당신(❌) 차례</span></div>' +
+      '<div class="tt-board" id="ttBoard"></div>' +
+      '<div class="game-actions"><button class="game-btn" id="ttNew">🔄 새 게임</button></div>' +
+      '<div class="plane-hint">컴퓨터(⭕)와 대결! 한 줄(가로·세로·대각)을 먼저 만들면 승리해요.</div>';
+    const boardEl = document.getElementById("ttBoard"), msgEl = document.getElementById("ttMsg");
+    const WIN = [[0, 1, 2], [3, 4, 5], [6, 7, 8], [0, 3, 6], [1, 4, 7], [2, 5, 8], [0, 4, 8], [2, 4, 6]];
+    let b, over; const cells = [];
+    function winner(bd) { for (const [a, c, d] of WIN) if (bd[a] && bd[a] === bd[c] && bd[a] === bd[d]) return bd[a]; return bd.every(v => v) ? "draw" : null; }
+    function done() { const w = winner(b); if (w) { over = true; msgEl.textContent = w === "draw" ? "🤝 무승부!" : w === "❌" ? "🎉 당신 승리!" : "😢 컴퓨터 승리!"; return true; } return false; }
+    function score(bd, pl) { const w = winner(bd); if (w === "⭕") return { s: 1 }; if (w === "❌") return { s: -1 }; if (w === "draw") return { s: 0 }; const mv = []; for (let i = 0; i < 9; i++) if (!bd[i]) { bd[i] = pl; mv.push({ i, s: score(bd, pl === "⭕" ? "❌" : "⭕").s }); bd[i] = ""; } return pl === "⭕" ? mv.reduce((a, c) => c.s > a.s ? c : a) : mv.reduce((a, c) => c.s < a.s ? c : a); }
+    function ai() { if (over) return; let i; const empty = []; for (let k = 0; k < 9; k++) if (!b[k]) empty.push(k); if (Math.random() < 0.25) i = empty[Math.random() * empty.length | 0]; else i = score(b, "⭕").i; if (i >= 0) { b[i] = "⭕"; render(); if (!done()) msgEl.textContent = "당신(❌) 차례"; } }
+    function play(i) { if (over || b[i]) return; b[i] = "❌"; render(); if (done()) return; msgEl.textContent = "컴퓨터 차례…"; onCleanup(() => {}); setTimeout(ai, 300); }
+    function render() { for (let i = 0; i < 9; i++) cells[i].textContent = b[i]; }
+    function reset() { b = Array(9).fill(""); over = false; boardEl.innerHTML = ""; cells.length = 0; for (let i = 0; i < 9; i++) { const c = document.createElement("button"); c.className = "tt-cell"; c.onclick = () => play(i); boardEl.appendChild(c); cells.push(c); } msgEl.textContent = "당신(❌) 차례"; render(); }
+    document.getElementById("ttNew").onclick = reset;
+    reset();
+  }
+
+  function buildMines() {
+    const R = 9, C = 9, MINES = 10;
+    stage.innerHTML =
+      '<div class="game-info"><span id="mnMsg">지뢰 ' + MINES + '개</span><button class="su-mini" id="mnFlag">🚩 깃발: OFF</button></div>' +
+      '<div class="mn-board" id="mnBoard"></div>' +
+      '<div class="game-actions"><button class="game-btn" id="mnNew">🔄 새 게임</button></div>' +
+      '<div class="plane-hint">칸을 눌러 열기! 숫자는 주변 지뢰 수. <b>🚩깃발 ON</b>으로 지뢰 표시. 지뢰 빼고 다 열면 승리 🎉</div>';
+    const boardEl = document.getElementById("mnBoard"), msgEl = document.getElementById("mnMsg"), flagBtn = document.getElementById("mnFlag");
+    boardEl.style.gridTemplateColumns = "repeat(" + C + ",1fr)";
+    let mine, open, flag, over, started, flagMode = false; const cells = [];
+    function nb(i) { const r = i / C | 0, c = i % C, res = []; for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) { if (!dr && !dc) continue; const nr = r + dr, nc = c + dc; if (nr >= 0 && nr < R && nc >= 0 && nc < C) res.push(nr * C + nc); } return res; }
+    function cnt(i) { return nb(i).filter(n => mine[n]).length; }
+    function reveal(i) { if (open[i] || flag[i]) return; open[i] = true; if (mine[i]) { over = true; msgEl.textContent = "💥 지뢰! 게임 오버"; for (let k = 0; k < R * C; k++) if (mine[k]) open[k] = true; return; } if (cnt(i) === 0) nb(i).forEach(n => { if (!open[n]) reveal(n); }); }
+    function win() { if (over) return; let u = 0; for (let i = 0; i < R * C; i++) if (!open[i] && !mine[i]) u++; if (!u) { over = true; msgEl.textContent = "🎉 승리! 모두 클리어!"; } }
+    function toggleFlag(i) { if (over || open[i]) return; flag[i] = !flag[i]; render(); }
+    function click(i) { if (over || open[i]) return; if (flagMode) { toggleFlag(i); return; } if (flag[i]) return; if (!started) { let p = 0; while (p < MINES) { const q = Math.random() * R * C | 0; if (!mine[q] && q !== i) { mine[q] = true; p++; } } started = true; } reveal(i); render(); win(); }
+    function render() { for (let i = 0; i < R * C; i++) { const b = cells[i]; b.className = "mn-cell"; if (flag[i]) b.textContent = "🚩"; else if (!open[i]) b.textContent = ""; else if (mine[i]) { b.textContent = "💣"; b.classList.add("mn-open"); } else { const n = cnt(i); b.textContent = n || ""; b.classList.add("mn-open"); if (n) b.classList.add("mn-" + n); } } }
+    function reset() { mine = Array(R * C).fill(false); open = Array(R * C).fill(false); flag = Array(R * C).fill(false); over = false; started = false; boardEl.innerHTML = ""; cells.length = 0; for (let i = 0; i < R * C; i++) { const b = document.createElement("button"); b.className = "mn-cell"; b.oncontextmenu = e => { e.preventDefault(); toggleFlag(i); }; b.onclick = () => click(i); boardEl.appendChild(b); cells.push(b); } msgEl.textContent = "지뢰 " + MINES + "개"; render(); }
+    flagBtn.onclick = () => { flagMode = !flagMode; flagBtn.textContent = "🚩 깃발: " + (flagMode ? "ON" : "OFF"); flagBtn.classList.toggle("on", flagMode); };
+    document.getElementById("mnNew").onclick = reset;
+    reset();
+  }
+
+  function buildSlide() {
+    stage.innerHTML =
+      '<div class="game-info"><span id="slMsg">이동 0</span></div>' +
+      '<div class="sl-board" id="slBoard"></div>' +
+      '<div class="game-actions"><button class="game-btn" id="slNew">🔄 섞기</button></div>' +
+      '<div class="plane-hint">빈 칸 옆의 타일을 눌러 밀어서 <b>1~15 순서</b>로 맞추세요!</div>';
+    const boardEl = document.getElementById("slBoard"), msgEl = document.getElementById("slMsg");
+    let tiles, moves, empty; const cells = [];
+    for (let i = 0; i < 16; i++) { const c = document.createElement("button"); c.className = "sl-cell"; c.onclick = () => tap(i); boardEl.appendChild(c); cells.push(c); }
+    function render() { for (let i = 0; i < 16; i++) { const v = tiles[i]; cells[i].textContent = v || ""; cells[i].classList.toggle("sl-empty", v === 0); } msgEl.textContent = "이동 " + moves; }
+    function tap(i) { const r = i / 4 | 0, c = i % 4, er = empty / 4 | 0, ec = empty % 4; if (Math.abs(r - er) + Math.abs(c - ec) === 1) { tiles[empty] = tiles[i]; tiles[i] = 0; empty = i; moves++; render(); if (tiles.slice(0, 15).every((v, k) => v === k + 1)) msgEl.textContent = "🎉 완성! " + moves + "번 만에!"; } }
+    function reset() { tiles = [...Array(15)].map((_, i) => i + 1); tiles.push(0); empty = 15; for (let k = 0; k < 400; k++) { const er = empty / 4 | 0, ec = empty % 4, opt = []; if (er > 0) opt.push(empty - 4); if (er < 3) opt.push(empty + 4); if (ec > 0) opt.push(empty - 1); if (ec < 3) opt.push(empty + 1); const t = opt[Math.random() * opt.length | 0]; tiles[empty] = tiles[t]; tiles[t] = 0; empty = t; } moves = 0; render(); }
+    document.getElementById("slNew").onclick = reset;
+    reset();
+  }
+
+  function buildSimon() {
+    stage.innerHTML =
+      '<div class="game-info"><span id="siMsg">시작을 누르세요</span><span id="siBest">🏆 ' + getBest("simon") + '</span></div>' +
+      '<div class="si-pad" id="siPad"><button class="si-btn" data-i="0" style="background:#e23b3b"></button><button class="si-btn" data-i="1" style="background:#3bb54a"></button><button class="si-btn" data-i="2" style="background:#3b6fe2"></button><button class="si-btn" data-i="3" style="background:#e2c23b"></button></div>' +
+      '<div class="game-actions"><button class="game-btn" id="siStart">▶ 시작</button></div>' +
+      '<div class="plane-hint">컴퓨터가 보여주는 <b>색 순서</b>를 그대로 따라 누르세요! 라운드마다 하나씩 길어져요.</div>';
+    const btns = [...stage.querySelectorAll(".si-btn")], msgEl = document.getElementById("siMsg"), bestEl = document.getElementById("siBest");
+    let seq, pos, accepting, live = true;
+    onCleanup(() => { live = false; });
+    function flash(i) { return new Promise(res => { if (!live) return res(); btns[i].classList.add("si-on"); setTimeout(() => { btns[i].classList.remove("si-on"); setTimeout(res, 160); }, 380); }); }
+    async function playSeq() { accepting = false; for (const i of seq) { if (!live) return; await flash(i); } if (!live) return; accepting = true; pos = 0; msgEl.textContent = "따라 누르세요! (" + seq.length + "단계)"; }
+    function next() { seq.push(Math.random() * 4 | 0); msgEl.textContent = "잘 보세요…"; setTimeout(() => { if (live) playSeq(); }, 500); }
+    btns.forEach(b => b.onclick = () => { if (!accepting) return; const i = +b.dataset.i; b.classList.add("si-on"); setTimeout(() => b.classList.remove("si-on"), 150); if (i === seq[pos]) { pos++; if (pos === seq.length) { accepting = false; setBest("simon", seq.length); bestEl.textContent = "🏆 " + getBest("simon"); msgEl.textContent = "✅ " + seq.length + "단계 성공!"; setTimeout(() => { if (live) next(); }, 700); } } else { accepting = false; msgEl.textContent = "❌ 틀렸어요! " + (seq.length - 1) + "단계 기록"; } });
+    document.getElementById("siStart").onclick = () => { seq = []; next(); };
+  }
+
+  function buildSchulte() {
+    stage.innerHTML =
+      '<div class="game-info"><span id="scMsg">1부터 25까지!</span><span id="scTime">0.0s</span></div>' +
+      '<div class="sc-board" id="scBoard"></div>' +
+      '<div class="game-actions"><button class="game-btn" id="scNew">🔄 새 게임</button></div>' +
+      '<div class="plane-hint">1→25를 순서대로 최대한 빠르게 누르세요! 집중력·순발력 훈련, 최고 기록 도전 🏆</div>';
+    const boardEl = document.getElementById("scBoard"), msgEl = document.getElementById("scMsg"), timeEl = document.getElementById("scTime");
+    let next, startT, timer; const cells = [];
+    onCleanup(() => { if (timer) clearInterval(timer); });
+    function best() { try { return parseFloat(localStorage.getItem("gbest_schulte")) || 0; } catch (_) { return 0; } }
+    function hit(n, b) { if (n !== next) { b.classList.add("sc-wrong"); setTimeout(() => b.classList.remove("sc-wrong"), 200); return; } if (next === 1) { startT = Date.now(); timer = setInterval(() => { timeEl.textContent = ((Date.now() - startT) / 1000).toFixed(1) + "s"; }, 100); } b.classList.add("sc-done"); next++; if (next > 25) { clearInterval(timer); const t = (Date.now() - startT) / 1000; timeEl.textContent = t.toFixed(1) + "s"; const bb = best(); let rec = ""; if (!bb || t < bb) { try { localStorage.setItem("gbest_schulte", String(t)); } catch (_) {} rec = " 🏆신기록!"; } msgEl.textContent = "🎉 완료! " + t.toFixed(1) + "초" + rec; } }
+    function reset() { if (timer) clearInterval(timer); next = 1; const nums = [...Array(25)].map((_, i) => i + 1); for (let i = 24; i > 0; i--) { const j = Math.random() * (i + 1) | 0; const t = nums[i]; nums[i] = nums[j]; nums[j] = t; } boardEl.innerHTML = ""; cells.length = 0; nums.forEach(n => { const b = document.createElement("button"); b.className = "sc-cell"; b.textContent = n; b.onclick = () => hit(n, b); boardEl.appendChild(b); cells.push(b); }); const bb = best(); msgEl.textContent = bb ? ("최고 " + bb.toFixed(1) + "s") : "1부터 25까지!"; timeEl.textContent = "0.0s"; }
+    document.getElementById("scNew").onclick = reset;
     reset();
   }
 
