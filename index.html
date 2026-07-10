@@ -319,6 +319,13 @@
   .upg.maxed { opacity: .55; border-color: #6ee7a8; }
   .upg.maxed .upg-co { background: #22c55e; color: #06331a; }
   .upg[disabled] { cursor: default; }
+  .plane-steer { display: none; gap: 10px; width: 100%; max-width: 460px; margin-top: 10px; }
+  .plane-steer button { flex: 1; font-family: inherit; font-size: 22px; font-weight: 800; border: none; border-radius: 14px; padding: 14px; color: #fff; cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; display: flex; flex-direction: column; align-items: center; gap: 1px; }
+  .plane-steer button span { font-size: 11px; font-weight: 700; opacity: .92; }
+  .plane-steer #pUp { background: linear-gradient(135deg,#38bdf8,#0ea5e9); }
+  .plane-steer #pDown { background: linear-gradient(135deg,#fb923c,#f97316); }
+  .plane-steer button:active { filter: brightness(1.18); }
+  .plane-btn:disabled { opacity: .6; cursor: default; }
   .omok-mode { display: flex; gap: 8px; margin-bottom: 10px; }
   .om-mode { font-family: inherit; font-size: 13px; font-weight: 700; border: 2px solid rgba(255,255,255,.25); background: rgba(255,255,255,.1); color: #fff; border-radius: 999px; padding: 8px 14px; cursor: pointer; }
   .om-mode.sel { background: #fff; color: #201c3f; border-color: #fff; }
@@ -1860,17 +1867,19 @@ switchTab("chat");
       '<div class="plane-top"><span id="pBest">🏆 ' + getBest("plane") + 'm</span><span id="pCoins">🪙 0</span></div>' +
       '<canvas class="plane-canvas" id="pCanvas" width="460" height="320"></canvas>' +
       '<div class="plane-run" id="pRun"></div>' +
+      '<div class="plane-steer" id="pSteer"><button id="pUp">⬆<span>상승·활공</span></button><button id="pDown">⬇<span>하강·가속</span></button></div>' +
       '<button class="plane-btn" id="pBtn">🎯 발사하기!</button>' +
       '<div class="plane-hint" id="pHint"></div>' +
       '<div class="plane-shop" id="pShop"></div>';
     const cv = document.getElementById("pCanvas"), ctx = cv.getContext("2d");
     const W = cv.width, H = cv.height, groundY = H - 30, startX = 46;
     const btn = document.getElementById("pBtn"), pBest = document.getElementById("pBest"), pCoins = document.getElementById("pCoins"),
-      pRun = document.getElementById("pRun"), pShop = document.getElementById("pShop"), pHint = document.getElementById("pHint");
+      pRun = document.getElementById("pRun"), pShop = document.getElementById("pShop"), pHint = document.getElementById("pHint"),
+      pSteer = document.getElementById("pSteer"), pUp = document.getElementById("pUp"), pDown = document.getElementById("pDown");
     const UPG = [
-      { key: "power", icon: "💪", name: "발사 파워", max: 6, base: 60, step: 55, desc: "더 세게 발사" },
-      { key: "fuel", icon: "⛽", name: "부스트 연료", max: 6, base: 60, step: 55, desc: "부스트 횟수 +1" },
-      { key: "glide", icon: "🪂", name: "활공", max: 5, base: 80, step: 70, desc: "공기저항 ↓ 더 멀리" },
+      { key: "power", icon: "💪", name: "발사 파워", max: 5, base: 60, step: 55, desc: "더 세게 발사" },
+      { key: "glide", icon: "🪂", name: "활공력", max: 5, base: 80, step: 60, desc: "더 평평하게 오래 활공" },
+      { key: "aero", icon: "🍃", name: "공기저항↓", max: 5, base: 80, step: 60, desc: "속도 유지 더 멀리" },
       { key: "magnet", icon: "🧲", name: "코인 자석", max: 4, base: 100, step: 80, desc: "코인 자동 흡수" },
       { key: "helmet", icon: "🪖", name: "헬멧", max: 3, base: 120, step: 100, desc: "💣 폭탄 피해 감소" }
     ];
@@ -1879,14 +1888,17 @@ switchTab("chat");
     const persist = () => { try { localStorage.setItem("plane_save", JSON.stringify(save)); } catch (_) {} };
     const lvl = k => save.up[k] || 0;
     const cost = u => u.base + (lvl(u.key)) * u.step;
-    let state, angle, angDir, power, powDir, px, py, vx, vy, dist, fuel, bounces, camX, trail, dust, items, coinRun, pops, shakeT;
+    const GRAV = 0.12, TURN = 0.05;
+    const liftK = () => 0.008 + 0.0004 * lvl("glide");
+    const dragK = () => 0.998 + 0.0002 * lvl("aero");
+    let state, angle, angDir, power, powDir, px, py, vx, vy, dist, bounces, camX, camY, trail, dust, items, coinRun, pops, shakeT, steer, airFrames;
     const clouds = [[300, 60], [720, 40], [1150, 95], [1650, 55], [2250, 75], [3050, 45], [3900, 80], [4700, 62], [5600, 48]];
     const hills = [-100, 380, 900, 1500, 2200, 3000, 3900, 4800, 5700];
     function vCoin(x, y) { ctx.beginPath(); ctx.arc(x, y, 7, 0, 7); ctx.fillStyle = "#f6c945"; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = "#c99400"; ctx.stroke(); ctx.lineWidth = 1; ctx.fillStyle = "#a97a00"; ctx.font = "bold 9px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("$", x, y + 0.5); }
     function vBalloon(x, y) { ctx.strokeStyle = "#9d174d"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x, y + 9); ctx.lineTo(x, y + 18); ctx.stroke(); ctx.fillStyle = "#ec4899"; ctx.beginPath(); ctx.ellipse(x, y, 8, 10, 0, 0, 7); ctx.fill(); ctx.fillStyle = "rgba(255,255,255,.5)"; ctx.beginPath(); ctx.ellipse(x - 2.5, y - 3, 2, 3, 0, 0, 7); ctx.fill(); }
     function vRocket(x, y) { ctx.fillStyle = "#ef4444"; ctx.beginPath(); ctx.moveTo(x, y - 11); ctx.lineTo(x - 6, y + 5); ctx.lineTo(x + 6, y + 5); ctx.closePath(); ctx.fill(); ctx.fillStyle = "#fbbf24"; ctx.beginPath(); ctx.moveTo(x - 4, y + 5); ctx.lineTo(x, y + 13); ctx.lineTo(x + 4, y + 5); ctx.closePath(); ctx.fill(); ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(x, y - 2, 2, 0, 7); ctx.fill(); }
     function vBomb(x, y) { ctx.fillStyle = "#1f2937"; ctx.beginPath(); ctx.arc(x, y + 1, 8, 0, 7); ctx.fill(); ctx.strokeStyle = "#9ca3af"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x + 5, y - 6); ctx.quadraticCurveTo(x + 11, y - 10, x + 9, y - 14); ctx.stroke(); ctx.lineWidth = 1; ctx.fillStyle = "#f59e0b"; ctx.beginPath(); ctx.arc(x + 9, y - 15, 2.2, 0, 7); ctx.fill(); ctx.fillStyle = "rgba(255,255,255,.25)"; ctx.beginPath(); ctx.arc(x - 2.5, y - 2, 2.5, 0, 7); ctx.fill(); }
-    function vTree(x, big) { const th = big ? 7 : 6; ctx.fillStyle = "#7a4a1e"; ctx.fillRect(x - 2, groundY - th, 4, th); const top = groundY - th; ctx.fillStyle = big ? "#2f9e44" : "#37b24d"; for (let k = 0; k < 3; k++) { const yb = top - k * 9, yt = yb - 15, w = (big ? 13 : 11) - k * 3; ctx.beginPath(); ctx.moveTo(x, yt); ctx.lineTo(x - w, yb); ctx.lineTo(x + w, yb); ctx.closePath(); ctx.fill(); } }
+    function vTree(x, big, baseY) { const th = big ? 7 : 6; ctx.fillStyle = "#7a4a1e"; ctx.fillRect(x - 2, baseY - th, 4, th); const top = baseY - th; ctx.fillStyle = big ? "#2f9e44" : "#37b24d"; for (let k = 0; k < 3; k++) { const yb = top - k * 9, yt = yb - 15, w = (big ? 13 : 11) - k * 3; ctx.beginPath(); ctx.moveTo(x, yt); ctx.lineTo(x - w, yb); ctx.lineTo(x + w, yb); ctx.closePath(); ctx.fill(); } }
     function vSquirrel(x, y, rot) {
       ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.scale(1.2, 1.2);
       ctx.fillStyle = "#a5631a"; ctx.beginPath(); ctx.moveTo(-5, 5); ctx.quadraticCurveTo(-20, 6, -19, -9); ctx.quadraticCurveTo(-18, -25, -3, -19); ctx.quadraticCurveTo(-13, -14, -11, -5); ctx.quadraticCurveTo(-10, 2, -5, 5); ctx.fill();
@@ -1909,22 +1921,24 @@ switchTab("chat");
       }
     }
     function pushDust(n, dir) { for (let i = 0; i < n; i++) dust.push({ x: px, y: py, vx: dir * (1 + Math.random() * 2), vy: (Math.random() - 0.5) * 2.4, life: 14 }); }
-    function toMenu() { state = "menu"; camX = 0; px = startX; py = groundY - 12; vx = 0; vy = 0; dist = 0; bounces = 0; coinRun = 0; trail = []; dust = []; pops = []; shakeT = 0; genItems(); refreshUi(); }
+    function toMenu() { state = "menu"; camX = 0; camY = 0; steer = 0; px = startX; py = groundY - 12; vx = 0; vy = 0; dist = 0; bounces = 0; coinRun = 0; trail = []; dust = []; pops = []; shakeT = 0; genItems(); refreshUi(); }
     function startAim() {
       state = "angle"; angle = 45; angDir = 1; power = 0; powDir = 1;
-      dist = 0; camX = 0; bounces = 0; coinRun = 0; trail = []; dust = []; pops = []; shakeT = 0;
+      dist = 0; camX = 0; camY = 0; steer = 0; bounces = 0; coinRun = 0; trail = []; dust = []; pops = []; shakeT = 0;
       px = startX; py = groundY - 12; vx = 0; vy = 0; genItems(); refreshUi();
     }
-    function launch() { const p = power / 100, speed = (7 + p * 15) * (1 + 0.08 * lvl("power")), a = angle * Math.PI / 180; vx = speed * Math.cos(a); vy = -speed * Math.sin(a); fuel = 5 + lvl("fuel"); state = "fly"; refreshUi(); }
-    function boost() { if (state === "fly" && fuel > 0) { fuel--; vx += 4.5; vy -= 3.2; pushDust(6, -1); refreshBtn(); } }
+    function launch() { const p = power / 100, speed = 4 + p * (9 + lvl("power")), a = angle * Math.PI / 180; vx = speed * Math.cos(a); vy = -speed * Math.sin(a); steer = 0; airFrames = 0; state = "fly"; refreshUi(); }
     function tap() {
       if (state === "menu") startAim();
       else if (state === "angle") { state = "power"; refreshUi(); }
       else if (state === "power") launch();
-      else if (state === "fly") boost();
       else if (state === "done") toMenu();
     }
     cv.onpointerdown = tap; btn.onclick = tap;
+    const doSteer = v => e => { e.preventDefault(); if (state === "fly") steer = v; };
+    const endSteer = e => { steer = 0; };
+    pUp.addEventListener("pointerdown", doSteer(-1)); pDown.addEventListener("pointerdown", doSteer(1));
+    ["pointerup", "pointerleave", "pointercancel"].forEach(ev => { pUp.addEventListener(ev, endSteer); pDown.addEventListener(ev, endSteer); });
     function renderShop() {
       pShop.innerHTML = UPG.map(u => {
         const lv = lvl(u.key), maxed = lv >= u.max, c = cost(u), can = !maxed && save.coins >= c;
@@ -1937,23 +1951,28 @@ switchTab("chat");
       pShop.querySelectorAll(".upg").forEach(b => b.onclick = e => { e.stopPropagation(); buyUpg(b.dataset.k); });
     }
     function buyUpg(k) { const u = UPG.find(x => x.key === k), lv = lvl(k); if (lv >= u.max) return; const c = cost(u); if (save.coins < c) return; save.coins -= c; save.up[k] = lv + 1; persist(); refreshUi(); }
-    function refreshBtn() { btn.textContent = state === "menu" ? "🎯 발사하기!" : state === "angle" ? "🎯 각도 정하기 (탭)" : state === "power" ? "💪 파워 정하기 (탭)" : state === "fly" ? ("✈️ 부스트 ⛽" + fuel) : "🛒 상점으로 (탭)"; }
+    function refreshBtn() { btn.textContent = state === "menu" ? "🎯 발사하기!" : state === "angle" ? "🎯 각도 정하기 (탭)" : state === "power" ? "💪 파워 정하기 (탭)" : state === "fly" ? "🪂 활공 중… (⬆⬇ 조종)" : "🛒 상점으로 (탭)"; btn.disabled = state === "fly"; }
     function refreshUi() {
       const shopVis = state === "menu" || state === "done";
       pShop.style.display = shopVis ? "grid" : "none";
       pRun.style.display = state === "fly" || state === "done" ? "block" : "none";
+      pSteer.style.display = state === "fly" ? "flex" : "none";
       if (shopVis) renderShop();
       refreshBtn();
-      pHint.innerHTML = state === "menu" ? "🛒 코인으로 업그레이드 → 🎯 발사! · 공중에서 🪙먹고 🎈🚀부스트, 💣폭탄 조심!"
+      pHint.innerHTML = state === "menu" ? "🛒 코인으로 업그레이드 → 🎯 발사! · 천천히 활공하며 🪙모으고 💣폭탄 피하기!"
         : state === "angle" ? "① <b>각도</b>를 탭해서 정하세요" : state === "power" ? "② <b>파워</b>를 탭해서 발사!"
-        : state === "fly" ? "✈️ <b>화면 탭</b> = 부스트 ⛽ · 🪙 모으기!" : "🏁 착륙! 코인으로 업그레이드하고 또 도전 🚀";
-      if (state === "done") pRun.textContent = "🏁 " + dist + "m · 🪙 +" + coinRun + " 획득! (바운스 " + bounces + ")";
+        : state === "fly" ? "🪂 <b>⬆상승</b>=오래 활공, <b>⬇하강</b>=가속! 🪙코인 모으기" : "🏁 착륙! 코인으로 업그레이드하고 또 도전 🚀";
+      if (state === "done") pRun.textContent = "🏁 " + dist + "m · 🪙 +" + coinRun + " 획득!";
       pCoins.textContent = "🪙 " + save.coins; pBest.textContent = "🏆 " + getBest("plane") + "m";
     }
     function finishFlight() { state = "done"; coinRun += Math.floor(dist / 40); save.coins += coinRun; persist(); setBest("plane", dist); refreshUi(); }
     function step() {
-      vy += 0.25; vx *= (0.998 + 0.0003 * lvl("glide")); px += vx; py += vy;
-      trail.push({ x: px, y: py }); if (trail.length > 18) trail.shift();
+      airFrames++;
+      if (steer !== 0) { const sp = Math.hypot(vx, vy) || 0.001; let ang = Math.atan2(vy, vx) + steer * TURN; if (ang < -1.05) ang = -1.05; if (ang > 1.4) ang = 1.4; const nsp = steer < 0 ? sp * 0.99 : sp; vx = nsp * Math.cos(ang); vy = nsp * Math.sin(ang); }
+      vy += GRAV; vy -= liftK() * Math.max(vx, 0);
+      const dr = dragK(); vx *= dr; vy *= dr; if (vx < 0) vx = 0;
+      px += vx; py += vy;
+      trail.push({ x: px, y: py }); if (trail.length > 20) trail.shift();
       const magnetR = 22 + lvl("magnet") * 22, helmetMit = lvl("helmet") * 0.32;
       for (const it of items) {
         if (it.got) continue; const dx = it.x - px; if (dx > 240) break; if (dx < -80) continue;
@@ -1961,51 +1980,55 @@ switchTab("chat");
         if (it.t === "coin") { if (d < magnetR) { it.got = true; coinRun += 2; pops.push({ x: it.x, y: it.y, txt: "+2", c: "#f4c430", life: 30 }); } }
         else if (d < 26) {
           it.got = true;
-          if (it.t === "balloon") { vy -= 4.6; vx += 1.6; pops.push({ x: it.x, y: it.y, txt: "UP!", c: "#ec4899", life: 26 }); }
-          else if (it.t === "rocket") { vx += 10; vy -= 3.2; pushDust(8, -1); pops.push({ x: it.x, y: it.y, txt: "BOOST!", c: "#f97316", life: 28 }); }
-          else { const f = 0.45 + 0.55 * helmetMit; vx *= f; vy -= 1.5; shakeT = 12; pops.push({ x: it.x, y: it.y, txt: "쿵!", c: "#dc2626", life: 26 }); }
+          if (it.t === "balloon") { vy -= 3.0; pops.push({ x: it.x, y: it.y, txt: "UP!", c: "#ec4899", life: 26 }); }
+          else if (it.t === "rocket") { vx += 5; vy -= 1.5; pushDust(8, -1); pops.push({ x: it.x, y: it.y, txt: "BOOST!", c: "#f97316", life: 28 }); }
+          else { const f = 0.5 + 0.5 * helmetMit; vx *= f; vy += 1; shakeT = 12; pops.push({ x: it.x, y: it.y, txt: "쿵!", c: "#dc2626", life: 26 }); }
         }
       }
       if (py >= groundY - 12) {
         py = groundY - 12;
-        if (Math.abs(vy) > 1.0) { vy = -vy * 0.56; vx *= 0.86; bounces++; for (let i = 0; i < 8; i++) dust.push({ x: px, y: groundY, vx: (Math.random() - 0.5) * 4, vy: -Math.random() * 3, life: 16 }); }
-        else { vy = 0; vx *= 0.90; if (Math.abs(vx) < 0.3) { finishFlight(); return; } }
+        if (Math.abs(vy) > 1.2) { vy = -vy * 0.42; vx *= 0.82; bounces++; for (let i = 0; i < 8; i++) dust.push({ x: px, y: groundY, vx: (Math.random() - 0.5) * 4, vy: -Math.random() * 3, life: 16 }); }
+        else { vy = 0; vx *= 0.95; if (vx < 0.3) { finishFlight(); return; } }
       }
-      dist = Math.max(0, Math.round((px - startX) / 6)); camX = Math.max(0, px - 100);
+      dist = Math.max(0, Math.round((px - startX) / 6));
+      camX = Math.max(0, px - 100);
+      camY = Math.min(0, py - H * 0.62);
       for (const d of dust) { d.x += d.vx; d.y += d.vy; d.vy += 0.15; d.life--; } dust = dust.filter(d => d.life > 0);
       for (const p of pops) { p.y -= 0.7; p.life--; } pops = pops.filter(p => p.life > 0);
       if (shakeT > 0) shakeT--;
     }
     function draw() {
+      const Y = wy => wy - camY;
       const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, "#7cc0ff"); g.addColorStop(1, "#dff2ff"); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
       ctx.save(); if (shakeT > 0) ctx.translate((Math.random() - 0.5) * shakeT * 0.7, (Math.random() - 0.5) * shakeT * 0.7);
       ctx.fillStyle = "#ffe066"; ctx.beginPath(); ctx.arc(W - 44, 44, 26, 0, 7); ctx.fill();
       ctx.fillStyle = "rgba(255,255,255,.85)";
-      for (const [cx, cy] of clouds) { const sx = cx - camX * 0.4; if (sx > -90 && sx < W + 90) { ctx.beginPath(); ctx.arc(sx, cy, 16, 0, 7); ctx.arc(sx + 18, cy + 4, 20, 0, 7); ctx.arc(sx + 40, cy, 15, 0, 7); ctx.fill(); } }
+      for (const [cx, cy] of clouds) { const sx = cx - camX * 0.4, sy = cy - camY * 0.5; if (sx > -90 && sx < W + 90) { ctx.beginPath(); ctx.arc(sx, sy, 16, 0, 7); ctx.arc(sx + 18, sy + 4, 20, 0, 7); ctx.arc(sx + 40, sy, 15, 0, 7); ctx.fill(); } }
       ctx.fillStyle = "#9ad67d";
-      for (const hx of hills) { const sx = hx - camX * 0.6; if (sx > -300 && sx < W + 300) { ctx.beginPath(); ctx.arc(sx + 150, groundY + 40, 135, Math.PI, 0); ctx.fill(); } }
-      ctx.fillStyle = "#6fbf5b"; ctx.fillRect(0, groundY, W, H - groundY);
-      ctx.fillStyle = "#5aa84a"; ctx.fillRect(0, groundY, W, 4);
+      for (const hx of hills) { const sx = hx - camX * 0.6; if (sx > -300 && sx < W + 300) { ctx.beginPath(); ctx.arc(sx + 150, Y(groundY + 40), 135, Math.PI, 0); ctx.fill(); } }
+      const gY = Y(groundY);
+      ctx.fillStyle = "#6fbf5b"; ctx.fillRect(0, gY, W, H * 2);
+      ctx.fillStyle = "#5aa84a"; ctx.fillRect(0, gY, W, 4);
       ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
       const t0 = Math.floor((camX - 160) / 160) * 160;
-      for (let tx = t0; tx < camX + W + 160; tx += 160) { const sx = tx - camX; vTree(sx, ((tx / 160) | 0) % 2 === 0); }
+      for (let tx = t0; tx < camX + W + 160; tx += 160) { const sx = tx - camX; vTree(sx, ((tx / 160) | 0) % 2 === 0, gY); }
       ctx.fillStyle = "rgba(0,0,0,.3)"; ctx.font = "11px sans-serif";
-      for (let m = 0; m <= 20000; m += 50) { const sx = startX + m * 6 - camX; if (sx > -30 && sx < W + 30) { ctx.fillRect(sx, groundY, 1, 7); if (m % 100 === 0) ctx.fillText(m + "m", sx - 8, groundY + 20); } }
+      for (let m = 0; m <= 20000; m += 50) { const sx = startX + m * 6 - camX; if (sx > -30 && sx < W + 30) { ctx.fillRect(sx, gY, 1, 7); if (m % 100 === 0) ctx.fillText(m + "m", sx - 8, gY + 20); } }
       const lx = startX - camX;
-      if (lx > -40 && lx < W + 60) { ctx.strokeStyle = "#7a4a1e"; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(lx - 9, groundY - 12); ctx.lineTo(lx - 9, groundY - 34); ctx.moveTo(lx + 9, groundY - 12); ctx.lineTo(lx + 9, groundY - 34); ctx.stroke(); if (state === "angle" || state === "power") { ctx.strokeStyle = "#c0392b"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(lx - 9, groundY - 32); ctx.lineTo(px - camX, py); ctx.lineTo(lx + 9, groundY - 32); ctx.stroke(); } ctx.lineWidth = 1; }
+      if (lx > -40 && lx < W + 60) { ctx.strokeStyle = "#7a4a1e"; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(lx - 9, gY - 12); ctx.lineTo(lx - 9, gY - 34); ctx.moveTo(lx + 9, gY - 12); ctx.lineTo(lx + 9, gY - 34); ctx.stroke(); if (state === "angle" || state === "power") { ctx.strokeStyle = "#c0392b"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(lx - 9, gY - 32); ctx.lineTo(px - camX, Y(py)); ctx.lineTo(lx + 9, gY - 32); ctx.stroke(); } ctx.lineWidth = 1; }
       ctx.textBaseline = "middle";
-      for (const it of items) { if (it.got) continue; const sx = it.x - camX; if (sx < -30 || sx > W + 30) continue; if (it.t === "coin") vCoin(sx, it.y); else if (it.t === "balloon") vBalloon(sx, it.y); else if (it.t === "rocket") vRocket(sx, it.y); else vBomb(sx, it.y); }
+      for (const it of items) { if (it.got) continue; const sx = it.x - camX; if (sx < -30 || sx > W + 30) continue; const iy = Y(it.y); if (it.t === "coin") vCoin(sx, iy); else if (it.t === "balloon") vBalloon(sx, iy); else if (it.t === "rocket") vRocket(sx, iy); else vBomb(sx, iy); }
       if (state === "angle" || state === "power") {
         if (state === "angle") { angle += angDir * 1.6; if (angle >= 80) { angle = 80; angDir = -1; } if (angle <= 15) { angle = 15; angDir = 1; } }
-        const bx = startX - camX, by = groundY - 12, a = angle * Math.PI / 180;
+        const bx = startX - camX, by = gY - 12, a = angle * Math.PI / 180;
         ctx.strokeStyle = "#ef4444"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx + Math.cos(a) * 46, by - Math.sin(a) * 46); ctx.stroke(); ctx.lineWidth = 1;
         ctx.fillStyle = "#ef4444"; ctx.textAlign = "left"; ctx.font = "bold 12px sans-serif"; ctx.fillText(Math.round(angle) + "°", bx + 8, by - 44); ctx.textAlign = "center";
         if (state === "power") { power += powDir * 2.4; if (power >= 100) { power = 100; powDir = -1; } if (power <= 0) { power = 0; powDir = 1; } ctx.fillStyle = "#00000022"; ctx.fillRect(14, 18, 180, 16); ctx.fillStyle = power > 66 ? "#ef4444" : power > 33 ? "#f59e0b" : "#22c55e"; ctx.fillRect(14, 18, 180 * power / 100, 16); ctx.strokeStyle = "#fff"; ctx.strokeRect(14, 18, 180, 16); ctx.fillStyle = "#fff"; ctx.textAlign = "left"; ctx.font = "bold 11px sans-serif"; ctx.fillText("파워 " + Math.round(power) + "%", 20, 30); ctx.textAlign = "center"; }
       }
-      for (let i = 0; i < trail.length; i++) { const t = trail[i]; ctx.fillStyle = "rgba(255,255,255," + (i / trail.length * 0.5) + ")"; ctx.beginPath(); ctx.arc(t.x - camX, t.y, 3, 0, 7); ctx.fill(); }
-      ctx.fillStyle = "rgba(150,120,80,.6)"; for (const d of dust) { ctx.beginPath(); ctx.arc(d.x - camX, d.y, 2.5, 0, 7); ctx.fill(); }
-      for (const p of pops) { ctx.globalAlpha = Math.max(0, p.life / 30); ctx.fillStyle = p.c; ctx.font = "bold 14px sans-serif"; ctx.fillText(p.txt, p.x - camX, p.y); } ctx.globalAlpha = 1;
-      vSquirrel(px - camX, py, state === "fly" ? Math.atan2(vy, vx) : -0.28);
+      for (let i = 0; i < trail.length; i++) { const t = trail[i]; ctx.fillStyle = "rgba(255,255,255," + (i / trail.length * 0.5) + ")"; ctx.beginPath(); ctx.arc(t.x - camX, Y(t.y), 3, 0, 7); ctx.fill(); }
+      ctx.fillStyle = "rgba(150,120,80,.6)"; for (const d of dust) { ctx.beginPath(); ctx.arc(d.x - camX, Y(d.y), 2.5, 0, 7); ctx.fill(); }
+      for (const p of pops) { ctx.globalAlpha = Math.max(0, p.life / 30); ctx.fillStyle = p.c; ctx.font = "bold 14px sans-serif"; ctx.fillText(p.txt, p.x - camX, Y(p.y)); } ctx.globalAlpha = 1;
+      vSquirrel(px - camX, Y(py), state === "fly" ? Math.atan2(vy, vx) : -0.28);
       ctx.restore();
       if (state === "fly") pRun.textContent = "거리 " + dist + "m · 🪙 " + coinRun + (bounces ? " · 바운스 " + bounces : "");
     }
