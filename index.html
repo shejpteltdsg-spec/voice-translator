@@ -288,6 +288,11 @@
   .profcard .pc-photo { width: 84px; height: 84px; border-radius: 50%; object-fit: cover; margin: 0 auto; display: block; border: 3px solid rgba(255,255,255,.55); }
   .logo img { width: 100%; height: 100%; object-fit: cover; border-radius: 12px; display: block; }
 
+  .volbar { display: flex; align-items: center; gap: 10px; padding: 4px 14px 8px; }
+  .volbar-label { font-size: 13px; font-weight: 700; color: var(--ink); flex: 1; }
+  .volbtn { width: 40px; height: 40px; border-radius: 50%; border: 1.5px solid var(--line); background: #fff; color: var(--brand); font-size: 18px; font-weight: 800; cursor: pointer; display: grid; place-items: center; }
+  .volbtn:active { background: var(--brand-soft); }
+  .volpct { min-width: 46px; text-align: center; font-size: 15px; font-weight: 800; color: var(--brand); }
   .blockbtn { display: block; border: none; background: transparent; font-size: 12px; cursor: pointer; opacity: .5; margin-top: 4px; padding: 0; }
   .blockbtn:active { opacity: 1; }
 
@@ -331,6 +336,19 @@
   .vmic-hint { font-size: 12.5px; color: var(--muted); font-weight: 600; text-align: center; }
   .vfriend-item { display: flex; align-items: center; gap: 12px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; margin: 6px 14px; cursor: pointer; }
   .vfriend-item:active { background: var(--brand-soft); }
+
+  /* ===== 🏆 친구 순위 (게임 랭킹) ===== */
+  .lb-tabs { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px; justify-content: center; }
+  .lb-tab { font-family: inherit; font-size: 12.5px; font-weight: 800; border: 1.5px solid rgba(255,255,255,.25); background: rgba(255,255,255,.08); color: #fff; border-radius: 20px; padding: 8px 12px; cursor: pointer; }
+  .lb-tab.sel { background: #fff; color: #2f2b58; border-color: #fff; }
+  .lb-list { padding: 0 12px 12px; display: flex; flex-direction: column; gap: 8px; overflow-y: auto; }
+  .lb-row { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,.1); border-radius: 12px; padding: 10px 12px; }
+  .lb-row.lb-me { background: rgba(255,255,255,.28); outline: 2px solid #fde68a; }
+  .lb-rank { width: 30px; text-align: center; font-size: 17px; font-weight: 800; }
+  .lb-av { font-size: 22px; }
+  .lb-nick { flex: 1; font-size: 14px; font-weight: 700; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .lb-score { font-size: 15px; font-weight: 800; color: #fde68a; }
+  .lb-empty { text-align: center; color: rgba(255,255,255,.8); padding: 30px 10px; line-height: 1.6; }
 
   /* ===== 🎮 게임 ===== */
   .gamemodal { display: none; position: fixed; inset: 0; z-index: 95; background: linear-gradient(170deg, #201c3f, #2f2b58); color: #fff; flex-direction: column; }
@@ -502,7 +520,7 @@
       <button class="gamecard" data-game="slide"><span class="gc-emoji">🔢</span><span class="gc-name">15 슬라이드 퍼즐</span></button>
       <button class="gamecard" data-game="simon"><span class="gc-emoji">🎨</span><span class="gc-name">사이먼 (색깔 기억)</span></button>
       <button class="gamecard" data-game="schulte"><span class="gc-emoji">⚡</span><span class="gc-name">숫자 순서 (집중력)</span></button>
-      <div class="game-soon">🔜 곧 추가: 친구 순위 경쟁 (온라인 랭킹)</div>
+      <button class="gamecard" data-game="leaderboard" style="grid-column:1/-1;background:linear-gradient(135deg,#fef3c7,#fde68a)"><span class="gc-emoji">🏆</span><span class="gc-name">친구 순위 (온라인 랭킹)</span></button>
     </div>
     <div class="gamestage" id="gameStage"></div>
   </div>
@@ -766,6 +784,12 @@
       <div class="voicebar">
         <button class="voicetoggle" id="voiceToggle" data-i18n="voice_toggle">🔊 목소리 설정 (남 / 여 · 여러 목소리) ▾</button>
         <div class="voicepanel" id="voicePanel"></div>
+      </div>
+      <div class="volbar">
+        <span class="volbar-label">🔊 소리 크기</span>
+        <button class="volbtn" id="volDown">➖</button>
+        <span class="volpct" id="volPct">100%</span>
+        <button class="volbtn" id="volUp">➕</button>
       </div>
       <div class="docbar">
         <button class="voicetoggle" id="docToggle" style="color:#059669">📄 글·사진 번역 (문서·사진) ▾</button>
@@ -1119,12 +1143,13 @@ async function translate(text, from, to) {
    읽어주기 (TTS) + 목소리 선택 (남/여 · 여러 목소리)
 ========================================================= */
 let voicePref = {}, genderPref = {};   // {langCode: voiceURI}, {langCode: 'M'|'F'}
-let ttsPitch = 1, ttsRate = 0.95;      // 내 목소리 맞춤(높낮이/속도)
+let ttsPitch = 1, ttsRate = 0.95, ttsVolume = 1;   // 내 목소리 맞춤(높낮이/속도/크기)
 try {
   voicePref  = JSON.parse(localStorage.getItem("voicePref")  || "{}");
   genderPref = JSON.parse(localStorage.getItem("genderPref") || "{}");
   const p = parseFloat(localStorage.getItem("ttsPitch")); if (!isNaN(p)) ttsPitch = p;
   const r = parseFloat(localStorage.getItem("ttsRate"));  if (!isNaN(r)) ttsRate = r;
+  const vol = parseFloat(localStorage.getItem("ttsVolume")); if (!isNaN(vol)) ttsVolume = vol;
 } catch (_) {}
 function save() {
   try {
@@ -1132,6 +1157,7 @@ function save() {
     localStorage.setItem("genderPref", JSON.stringify(genderPref));
     localStorage.setItem("ttsPitch", String(ttsPitch));
     localStorage.setItem("ttsRate", String(ttsRate));
+    localStorage.setItem("ttsVolume", String(ttsVolume));
   } catch (_) {}
 }
 
@@ -1176,7 +1202,7 @@ function speakRobust(text, langCode, onDone) {
     const u = new SpeechSynthesisUtterance(text);
     u.lang = L[langCode].tts;
     if (useChosen) { const v = getVoiceFor(langCode); if (v) u.voice = v; }
-    u.rate = ttsRate; u.pitch = ttsPitch;
+    u.rate = ttsRate; u.pitch = ttsPitch; u.volume = ttsVolume;
     u.onstart = () => { started = true; };
     u.onend = () => done();
     u.onerror = () => {
@@ -1206,6 +1232,27 @@ const voicePanel = document.getElementById("voicePanel");
 const voiceToggle = document.getElementById("voiceToggle");
 voiceToggle.onclick = () => { voicePanel.classList.toggle("open"); buildVoicePanel(); };
 function previewVoice(code) { speak(L[code].hello || "Hello", code); }
+
+/* 🔊 소리 크기 업/다운 (모든 읽어주기에 적용) */
+(function initVolume() {
+  const pct = document.getElementById("volPct");
+  const up = document.getElementById("volUp");
+  const down = document.getElementById("volDown");
+  if (!pct || !up || !down) return;
+  const render = () => { pct.textContent = Math.round(ttsVolume * 100) + "%"; };
+  render();
+  up.onclick = () => {
+    if (ttsVolume >= 1) { ttsVolume = 1; render(); setStatus("🔊 앱 소리는 최대예요! 그래도 작으면 폰의 볼륨 버튼(＋)도 올려주세요."); speak(L[myLangEl.value].hello || "테스트", myLangEl.value); return; }
+    ttsVolume = Math.min(1, Math.round((ttsVolume + 0.1) * 10) / 10); save(); render();
+    setStatus("🔊 소리 크기 " + Math.round(ttsVolume * 100) + "%");
+    speak(L[myLangEl.value].hello || "테스트", myLangEl.value);
+  };
+  down.onclick = () => {
+    ttsVolume = Math.max(0.1, Math.round((ttsVolume - 0.1) * 10) / 10); save(); render();
+    setStatus("🔉 소리 크기 " + Math.round(ttsVolume * 100) + "%");
+    speak(L[myLangEl.value].hello || "테스트", myLangEl.value);
+  };
+})();
 
 function buildVoicePanel() {
   if (!voicePanel || !voicePanel.classList.contains("open")) return;
@@ -2488,7 +2535,83 @@ function notify(title, body) {
   function onCleanup(fn) { cleanups.push(fn); }
   function stopRaf() { if (raf) { cancelAnimationFrame(raf); raf = null; } runCleanups(); }
   function getBest(k) { try { return parseInt(localStorage.getItem("gbest_" + k)) || 0; } catch (_) { return 0; } }
-  function setBest(k, v) { try { if (v > getBest(k)) localStorage.setItem("gbest_" + k, String(v)); } catch (_) {} }
+  function setBest(k, v) { try { if (v > getBest(k)) { localStorage.setItem("gbest_" + k, String(v)); if (LB_META[k] && !LB_META[k].lower) lbSyncLocal(k, v); } } catch (_) {} }
+
+  /* ===== 🏆 친구 순위 (온라인 랭킹) — messages 테이블 재사용, 새 백엔드 불필요 ===== */
+  const LB_META = {
+    "2048": { title: "🔢 2048", lower: false, unit: "점" },
+    "simon": { title: "🎨 사이먼", lower: false, unit: "단계" },
+    "memory": { title: "🃏 기억력", lower: true, unit: "번" },
+    "schulte": { title: "⚡ 숫자순서", lower: true, unit: "초" }
+  };
+  async function lbSubmit(game, score) {
+    if (score == null || isNaN(score) || score <= 0) return;
+    try {
+      const sb = await ensureSbClient(); const p = profile || {};
+      await sb.from("messages").insert({ room: "lb_" + game, uid: myUid, nick: p.nick || "익명", avatar: p.avatar || "🙂", country: p.country || "", lang: myLangEl.value, text: String(score) });
+    } catch (_) {}
+  }
+  // 로컬 최고기록이 바뀌었을 때만 서버로(중복 방지)
+  function lbSyncLocal(game, score) {
+    if (!score || isNaN(score) || score <= 0) return;
+    try { if (localStorage.getItem("lb_synced_" + game) === String(score)) return; } catch (_) {}
+    lbSubmit(game, score);
+    try { localStorage.setItem("lb_synced_" + game, String(score)); } catch (_) {}
+  }
+  async function lbLoad(game) {
+    const meta = LB_META[game];
+    const sb = await ensureSbClient();
+    let friendIds = [];
+    try { const fr = await sb.from("friends").select("friend_uid").eq("uid", myUid); friendIds = (fr.data || []).map(f => f.friend_uid); } catch (_) {}
+    const allowed = new Set([myUid].concat(friendIds));
+    const res = await sb.from("messages").select("uid,nick,avatar,country,text").eq("room", "lb_" + game).order("id", { ascending: false }).limit(500);
+    const rows = res.data || [];
+    const byUid = {};
+    rows.forEach(r => {
+      if (!allowed.has(r.uid)) return;
+      const v = parseFloat(r.text); if (isNaN(v)) return;
+      const cur = byUid[r.uid];
+      if (!cur) byUid[r.uid] = { uid: r.uid, nick: r.nick, avatar: r.avatar, country: r.country, score: v };
+      else if (meta.lower ? v < cur.score : v > cur.score) cur.score = v;
+    });
+    const list = Object.values(byUid);
+    list.sort((a, b) => meta.lower ? a.score - b.score : b.score - a.score);
+    return list;
+  }
+  async function buildLeaderboard() {
+    lbSyncLocal("2048", getBest("2048"));
+    lbSyncLocal("simon", getBest("simon"));
+    try { lbSyncLocal("memory", parseInt(localStorage.getItem("gbest_memory_moves")) || 0); } catch (_) {}
+    try { lbSyncLocal("schulte", parseFloat(localStorage.getItem("gbest_schulte")) || 0); } catch (_) {}
+    stage.innerHTML =
+      '<div class="lb-tabs" id="lbTabs"></div>' +
+      '<div class="lb-list" id="lbList">불러오는 중…</div>' +
+      '<div class="plane-hint">🏆 <b>나 + 친구들</b> 순위예요. 게임에서 최고기록을 세우면 자동으로 올라가요.<br>친구 탭에서 친구를 추가하면 함께 경쟁할 수 있어요!</div>';
+    const tabs = document.getElementById("lbTabs");
+    let cur = "2048";
+    Object.keys(LB_META).forEach(g => {
+      const b = document.createElement("button");
+      b.className = "lb-tab" + (g === cur ? " sel" : "");
+      b.textContent = LB_META[g].title;
+      b.onclick = () => { cur = g; [...tabs.children].forEach(c => c.classList.remove("sel")); b.classList.add("sel"); renderLbList(cur); };
+      tabs.appendChild(b);
+    });
+    async function renderLbList(game) {
+      const listEl = document.getElementById("lbList"); if (!listEl) return;
+      listEl.textContent = "불러오는 중…";
+      let list; try { list = await lbLoad(game); } catch (_) { listEl.textContent = "⚠️ 순위 불러오기 실패 — 인터넷을 확인하세요."; return; }
+      const meta = LB_META[game];
+      if (!list.length) { listEl.innerHTML = '<div class="lb-empty">아직 기록이 없어요.<br>게임을 해서 첫 기록을 세워보세요! 🎮</div>'; return; }
+      listEl.innerHTML = list.map((r, i) => {
+        const medal = ["🥇", "🥈", "🥉"][i] || ('<b>' + (i + 1) + '</b>');
+        const me = r.uid === myUid ? " lb-me" : "";
+        const flag = r.country ? r.country.split(" ")[0] : "";
+        const sc = meta.lower ? r.score.toFixed(1) : r.score;
+        return `<div class="lb-row${me}"><span class="lb-rank">${medal}</span><span class="lb-av">${r.avatar || "🙂"}</span><span class="lb-nick">${escapeHtml(r.nick || "익명")} ${flag}</span><span class="lb-score">${sc}${meta.unit}</span></div>`;
+      }).join("");
+    }
+    renderLbList(cur);
+  }
 
   function openHub() {
     stopRaf(); stage.innerHTML = ""; stage.classList.remove("on");
@@ -2509,6 +2632,7 @@ function notify(title, body) {
     else if (name === "slide") { title.textContent = "🔢 15 퍼즐"; buildSlide(); }
     else if (name === "simon") { title.textContent = "🎨 사이먼"; buildSimon(); }
     else if (name === "schulte") { title.textContent = "⚡ 숫자 순서"; buildSchulte(); }
+    else if (name === "leaderboard") { title.textContent = "🏆 친구 순위"; buildLeaderboard(); }
   }
   document.getElementById("gamesBtn").onclick = () => { modal.classList.add("open"); openHub(); };
   document.getElementById("gamesClose").onclick = () => { modal.classList.remove("open"); stopRaf(); };
@@ -2580,7 +2704,7 @@ function notify(title, body) {
         else { setTimeout(() => { deck[a].el.classList.remove("open"); deck[b].el.classList.remove("open"); flipped = []; lock = false; }, 720); }
       }
     }
-    function finish() { const prev = memBest(); let rec = ""; if (!prev || moves < prev) { try { localStorage.setItem("gbest_memory_moves", String(moves)); } catch (_) {} rec = " 🏆 신기록!"; } bestEl.textContent = "🏆 " + memBest() + "번"; msgEl.textContent = "🎉 완성! " + moves + "번 만에 성공!" + rec; }
+    function finish() { const prev = memBest(); let rec = ""; if (!prev || moves < prev) { try { localStorage.setItem("gbest_memory_moves", String(moves)); } catch (_) {} lbSyncLocal("memory", moves); rec = " 🏆 신기록!"; } bestEl.textContent = "🏆 " + memBest() + "번"; msgEl.textContent = "🎉 완성! " + moves + "번 만에 성공!" + rec; }
     function reset() {
       deck = FACES.concat(FACES).map((f, i) => ({ f, id: i })); for (let i = deck.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); const t = deck[i]; deck[i] = deck[j]; deck[j] = t; }
       flipped = []; matched = 0; moves = 0; lock = false; msgEl.textContent = ""; boardEl.innerHTML = "";
@@ -2736,7 +2860,7 @@ function notify(title, body) {
     let next, startT, timer; const cells = [];
     onCleanup(() => { if (timer) clearInterval(timer); });
     function best() { try { return parseFloat(localStorage.getItem("gbest_schulte")) || 0; } catch (_) { return 0; } }
-    function hit(n, b) { if (n !== next) { b.classList.add("sc-wrong"); setTimeout(() => b.classList.remove("sc-wrong"), 200); return; } if (next === 1) { startT = Date.now(); timer = setInterval(() => { timeEl.textContent = ((Date.now() - startT) / 1000).toFixed(1) + "s"; }, 100); } b.classList.add("sc-done"); next++; if (next > 25) { clearInterval(timer); const t = (Date.now() - startT) / 1000; timeEl.textContent = t.toFixed(1) + "s"; const bb = best(); let rec = ""; if (!bb || t < bb) { try { localStorage.setItem("gbest_schulte", String(t)); } catch (_) {} rec = " 🏆신기록!"; } msgEl.textContent = "🎉 완료! " + t.toFixed(1) + "초" + rec; } }
+    function hit(n, b) { if (n !== next) { b.classList.add("sc-wrong"); setTimeout(() => b.classList.remove("sc-wrong"), 200); return; } if (next === 1) { startT = Date.now(); timer = setInterval(() => { timeEl.textContent = ((Date.now() - startT) / 1000).toFixed(1) + "s"; }, 100); } b.classList.add("sc-done"); next++; if (next > 25) { clearInterval(timer); const t = (Date.now() - startT) / 1000; timeEl.textContent = t.toFixed(1) + "s"; const bb = best(); let rec = ""; if (!bb || t < bb) { try { localStorage.setItem("gbest_schulte", String(t)); } catch (_) {} lbSyncLocal("schulte", t); rec = " 🏆신기록!"; } msgEl.textContent = "🎉 완료! " + t.toFixed(1) + "초" + rec; } }
     function reset() { if (timer) clearInterval(timer); next = 1; const nums = [...Array(25)].map((_, i) => i + 1); for (let i = 24; i > 0; i--) { const j = Math.random() * (i + 1) | 0; const t = nums[i]; nums[i] = nums[j]; nums[j] = t; } boardEl.innerHTML = ""; cells.length = 0; nums.forEach(n => { const b = document.createElement("button"); b.className = "sc-cell"; b.textContent = n; b.onclick = () => hit(n, b); boardEl.appendChild(b); cells.push(b); }); const bb = best(); msgEl.textContent = bb ? ("최고 " + bb.toFixed(1) + "s") : "1부터 25까지!"; timeEl.textContent = "0.0s"; }
     document.getElementById("scNew").onclick = reset;
     reset();

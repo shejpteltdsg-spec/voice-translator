@@ -1,5 +1,5 @@
 // 오프라인 지원 + 설치용 서비스워커
-const CACHE = "translator-v12";
+const CACHE = "translator-v13";
 const ASSETS = ["./", "./index.html", "./install.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./icon-180.png"];
 
 self.addEventListener("install", (e) => {
