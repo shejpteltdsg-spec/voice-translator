@@ -425,6 +425,7 @@
         <button data-uilang="en" data-my="en">🇺🇸 English</button>
         <button data-uilang="zh" data-my="zh">🇨🇳 中文</button>
         <button data-uilang="ja" data-my="ja">🇯🇵 日本語</button>
+        <button data-uilang="my" data-my="my">🇲🇲 မြန်မာ</button>
       </div>
     </div>
   </div>
@@ -2447,12 +2448,22 @@ switchTab("chat");
   } else {
     ob.style.display = "flex";
     ob.querySelectorAll("[data-uilang]").forEach(btn => {
-      btn.onclick = () => {
+      const orig = btn.textContent;
+      btn.onclick = async () => {
         const ui = btn.getAttribute("data-uilang");
         const my = btn.getAttribute("data-my");
         try { localStorage.setItem("uiLang", ui); localStorage.setItem("myLang", my); } catch (_) {}
         if (L[my]) myLangEl.value = my;
-        applyI18n(ui);
+        if (I18N[ui]) {
+          applyI18n(ui);
+        } else {
+          // 내장 4개 언어가 아니면(예: 미얀마어) 실시간 번역해서 적용
+          btn.textContent = "🌐 …";
+          btn.disabled = true;
+          try { I18N[ui] = await buildDynamicI18n(ui); } catch (_) {}
+          applyI18n(ui);
+          btn.disabled = false; btn.textContent = orig;
+        }
         setStatus(t("ready"));
         ob.style.display = "none";
       };
