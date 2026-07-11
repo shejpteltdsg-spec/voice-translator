@@ -288,6 +288,50 @@
   .profcard .pc-photo { width: 84px; height: 84px; border-radius: 50%; object-fit: cover; margin: 0 auto; display: block; border: 3px solid rgba(255,255,255,.55); }
   .logo img { width: 100%; height: 100%; object-fit: cover; border-radius: 12px; display: block; }
 
+  .blockbtn { display: block; border: none; background: transparent; font-size: 12px; cursor: pointer; opacity: .5; margin-top: 4px; padding: 0; }
+  .blockbtn:active { opacity: 1; }
+
+  /* ===== ⚙️ 설정 메뉴 ===== */
+  .set-divider { height: 1px; background: var(--line); margin: 16px 0 6px; }
+  .set-menu-title { font-size: 12px; font-weight: 800; color: var(--muted); margin: 6px 0 4px; }
+  .set-row { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; font-family: inherit; font-size: 15px; font-weight: 700; color: var(--ink); background: #f7f8fa; border: 1px solid var(--line); border-radius: 12px; padding: 13px 14px; margin-top: 8px; cursor: pointer; text-align: left; }
+  .set-row:active { background: #eef0f3; }
+  .set-row-status { font-size: 12px; font-weight: 700; color: var(--muted); }
+  .set-sub { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin-top: 6px; }
+  .set-sub-note { font-size: 12.5px; color: var(--muted); line-height: 1.5; margin-bottom: 8px; }
+  .blocked-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .blocked-item:last-child { border-bottom: none; }
+  .miniunblock { font-family: inherit; font-size: 12px; font-weight: 700; border: none; background: var(--brand-soft); color: var(--brand); border-radius: 8px; padding: 6px 10px; cursor: pointer; }
+
+  /* ===== 🔒 앱 잠금 화면 ===== */
+  .lockscreen { display: none; position: fixed; inset: 0; z-index: 200; background: linear-gradient(160deg,#6d5cf0,#8b7cf5); color: #fff; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 24px; }
+  .lockscreen.on { display: flex; }
+  .lock-emoji { font-size: 50px; }
+  .lock-title { font-size: 18px; font-weight: 800; }
+  .lock-dots { letter-spacing: 8px; font-size: 30px; min-height: 36px; }
+  .lock-pad { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; width: 240px; }
+  .lock-pad button { font-family: inherit; font-size: 22px; font-weight: 700; border: none; background: rgba(255,255,255,.2); color: #fff; border-radius: 50%; width: 68px; height: 68px; cursor: pointer; }
+  .lock-pad button:active { background: rgba(255,255,255,.4); }
+
+  /* ===== 📞 전화 3종 모드 ===== */
+  .callmodes { display: flex; gap: 6px; padding: 10px 12px 4px; }
+  .callmode-btn { flex: 1; font-family: inherit; font-size: 12.5px; font-weight: 800; border: 1.5px solid var(--line); background: #fff; color: var(--muted); border-radius: 12px; padding: 10px 4px; cursor: pointer; line-height: 1.3; }
+  .callmode-btn.sel { border-color: var(--brand); background: var(--brand-soft); color: var(--brand); }
+  .callmode { display: none; }
+  .callmode.on { display: block; }
+
+  /* ===== 🌐 단체 통역 통화(음성방) ===== */
+  .vroom-setup { padding: 4px 14px; }
+  .vroster { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 14px 0; }
+  .vroster-chip { font-size: 12px; font-weight: 700; background: var(--brand-soft); color: var(--brand); border-radius: 20px; padding: 5px 10px; }
+  .vmic-wrap { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 10px; }
+  .vmic { width: 90px; height: 90px; border-radius: 50%; border: none; background: linear-gradient(135deg,#6d5cf0,#8b7cf5); color: #fff; font-size: 34px; cursor: pointer; box-shadow: 0 8px 22px rgba(109,92,240,.4); }
+  .vmic.listening { background: linear-gradient(135deg,#ef4444,#f87171); animation: vpulse 1s infinite; }
+  @keyframes vpulse { 0%,100%{ transform: scale(1);} 50%{ transform: scale(1.07);} }
+  .vmic-hint { font-size: 12.5px; color: var(--muted); font-weight: 600; text-align: center; }
+  .vfriend-item { display: flex; align-items: center; gap: 12px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; margin: 6px 14px; cursor: pointer; }
+  .vfriend-item:active { background: var(--brand-soft); }
+
   /* ===== 🎮 게임 ===== */
   .gamemodal { display: none; position: fixed; inset: 0; z-index: 95; background: linear-gradient(170deg, #201c3f, #2f2b58); color: #fff; flex-direction: column; }
   .gamemodal.open { display: flex; }
@@ -517,7 +561,47 @@
       <div class="uilang-hint" id="uilangHint"></div>
       <div class="settings-err" id="setErr"></div>
       <button class="settings-save" id="profSave" data-i18n="set_save">저장</button>
+
+      <div class="set-divider"></div>
+      <div class="set-menu-title">관리</div>
+
+      <button class="set-row" id="setFriendsRow">👥 친구 목록 편집 <span class="set-row-status">›</span></button>
+
+      <button class="set-row" id="setBlockRow">🚫 차단 관리 <span class="set-row-status" id="blockStatus"></span></button>
+      <div class="set-sub" id="setBlockSub" style="display:none">
+        <div id="blockList" class="set-sub-note">차단한 사람이 없어요.</div>
+      </div>
+
+      <button class="set-row" id="setNotifRow">🔔 알림 설정 <span class="set-row-status" id="notifStatus"></span></button>
+      <div class="set-sub" id="setNotifSub" style="display:none">
+        <div class="set-sub-note">새 메시지·전화 알림을 받으려면 허용하세요.<br>(아이폰은 홈 화면에 설치한 뒤부터 알림이 지원돼요.)</div>
+        <button class="cbtn" id="notifEnableBtn" style="width:100%">🔔 알림 허용하기</button>
+      </div>
+
+      <button class="set-row" id="setLockRow">🔒 앱 잠금 (비밀번호) <span class="set-row-status" id="lockStatus"></span></button>
+      <div class="set-sub" id="setLockSub" style="display:none">
+        <div class="set-sub-note">앱을 열 때 4자리 비밀번호를 물어봐요. (이 기기에만 저장돼요.)</div>
+        <input class="settings-input" id="pinInput" type="tel" inputmode="numeric" maxlength="4" placeholder="4자리 숫자" autocomplete="off" />
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="cbtn" id="pinSetBtn" style="flex:1;background:var(--grad)">설정 / 변경</button>
+          <button class="cbtn hang" id="pinClearBtn" style="flex:1">잠금 해제</button>
+        </div>
+      </div>
+
+      <button class="set-row" id="setAccountRow">🪪 계정 · 데이터 <span class="set-row-status">›</span></button>
+      <div class="set-sub" id="setAccountSub" style="display:none">
+        <div class="set-sub-note">내 친구코드: <b id="acctCode">-</b><br>이 앱은 로그인 없이 이 기기에서 <b>익명 코드</b>로 동작해요. (별도 회원가입은 추후 추가 예정)</div>
+        <button class="cbtn hang" id="resetDataBtn" style="width:100%">🗑️ 이 기기에서 로그아웃 · 데이터 초기화</button>
+      </div>
     </div>
+  </div>
+
+  <!-- 🔒 앱 잠금 화면 -->
+  <div class="lockscreen" id="lockscreen">
+    <div class="lock-emoji">🔒</div>
+    <div class="lock-title">비밀번호를 입력하세요</div>
+    <div class="lock-dots" id="lockDots"></div>
+    <div class="lock-pad" id="lockPad"></div>
   </div>
 
   <main class="tabwrap">
@@ -573,6 +657,58 @@
 
     <!-- 📞 전화 -->
     <section class="tab" id="tab-call">
+      <div class="callmodes">
+        <button class="callmode-btn sel" data-cmode="friend">👥 친구와<br>전화</button>
+        <button class="callmode-btn" data-cmode="group">🌐 단체<br>통역통화</button>
+        <button class="callmode-btn" data-cmode="random">🎲 랜덤<br>전화</button>
+      </div>
+
+      <!-- 👥 친구와 전화 -->
+      <div class="callmode on" id="cmode-friend">
+        <div class="vroom-setup"><div class="cnote">친구를 눌러 <b>1:1 통역 통화</b>를 시작해요. 서로 다른 언어로 말해도 각자 <b>자기 언어로</b> 들려요.</div></div>
+        <div id="callFriendList"><div class="friend-empty" style="padding:14px">친구 탭에서 친구를 먼저 추가하세요.</div></div>
+      </div>
+
+      <!-- 🌐 단체 통역통화 -->
+      <div class="callmode" id="cmode-group">
+        <div class="vroom-setup">
+          <input id="vroomName" class="cinput" placeholder="통화방 이름 (예: 회의)" value="team-call" maxlength="20" autocomplete="off" />
+          <button class="cbtn" id="vroomJoinBtn" style="width:100%;margin-top:8px;background:var(--grad)">🌐 단체 통역통화 입장</button>
+          <div class="cnote">같은 방에 들어온 사람끼리 통화해요. 각자 <b>자기 언어로 말하고, 자기 언어로 듣습니다.</b> 🎧 이어폰 권장.</div>
+          <div class="cnote" id="vroomSetupStatus"></div>
+        </div>
+      </div>
+
+      <!-- 🎲 랜덤 전화 -->
+      <div class="callmode" id="cmode-random">
+        <div class="vroom-setup">
+          <div class="cnote">⚠️ <b>모르는 사람</b>과 랜덤으로 연결돼요. 이름·번호 등 개인정보는 알려주지 마세요. 불쾌하면 <b>나가기</b> 후 차단할 수 있어요.</div>
+          <button class="cbtn" id="randomStartBtn" style="width:100%;background:var(--grad)">🎲 랜덤 통역 전화 시작</button>
+          <button class="cbtn" id="randomNextBtn" style="width:100%;margin-top:8px;display:none">⏭️ 다른 사람과 연결</button>
+          <div class="cnote" id="randomStatus"></div>
+        </div>
+      </div>
+
+      <!-- 공용 통화 화면(단체·친구·랜덤 모두 사용) -->
+      <div id="vroomLive" style="display:none">
+        <div class="clive">🟢 <span id="vroomLiveName"></span> · 내 언어: <span id="vroomMyLang"></span></div>
+        <div class="vroster" id="vroster"></div>
+        <div class="log" id="vroomLog"><div class="empty" id="vroomEmpty"><div class="big">🌐</div>아래 🎤 버튼을 누르고 말하면<br>모두에게 각자 언어로 전달돼요.</div></div>
+        <div class="vmic-wrap">
+          <button class="vmic" id="vmicBtn">🎤</button>
+          <div class="vmic-hint" id="vmicHint">🎤 버튼을 누르고 말하세요</div>
+        </div>
+        <div id="vroomTypeBar" style="display:none;padding:0 14px 6px">
+          <textarea id="vroomTypeInput" class="docarea" placeholder="음성인식이 안 되는 언어예요. 여기 글자로 입력하세요…"></textarea>
+          <button class="cbtn" id="vroomTypeBtn" style="width:100%">✅ 전송</button>
+        </div>
+        <div style="display:flex;gap:8px;padding:0 14px 10px">
+          <button class="cbtn" id="vroomInviteBtn" style="flex:1;background:linear-gradient(135deg,#10b981,#22c55e)">👥 초대</button>
+          <button class="cbtn hang" id="vroomLeaveBtn" style="flex:1">나가기</button>
+        </div>
+      </div>
+
+      <div id="legacyCall" style="display:none">
       <div class="callbar">
         <button class="calltoggle" id="callToggle" data-i18n="call_toggle">📞 멀리 있는 사람과 통역 통화 ▾</button>
         <div class="callpanel open" id="callPanel">
@@ -611,6 +747,7 @@
         <input id="chatInput" class="chatinput" placeholder="메시지 입력…" data-i18n-ph="chat_ph" autocomplete="off" />
         <button id="chatSend" class="chatsend" data-i18n="chat_send">보내기</button>
       </div>
+      </div><!-- /legacyCall -->
     </section>
 
     <!-- 🌐 번역 -->
@@ -1667,10 +1804,11 @@ function openSettings() {
   profNick.value = profile.nick || "";
   profCountry.value = profile.country || "";
   profBirthday.value = profile.birthday || "";
-  document.getElementById("setErr").textContent = "";
+  const se = document.getElementById("setErr"); se.textContent = ""; se.style.color = "";
   setPhotoPrev();
   buildAvatarRow();
   uilangSel.value = UI; uilangHint.textContent = "";
+  if (typeof renderBlockList === "function") renderBlockList();
   settingsModal.classList.add("open");
 }
 function saveProfile() {
@@ -1721,17 +1859,25 @@ function addCloudBubble(m, mine) {
     `<div class="who">${who}</div>` +
     `<div class="orig" dir="auto">${escapeHtml(m.orig)}</div>` +
     ((m.tr && m.tr !== m.orig) ? `<div class="trans" dir="auto">${escapeHtml(m.tr)}</div>` : "") +
-    `<div class="replay">🔊</div>`;
+    `<div class="replay">🔊</div>` +
+    ((!mine && m.uid) ? `<button class="blockbtn" title="차단">🚫</button>` : "");
   b.querySelector(".replay").onclick = () => speak(m.tr || m.orig, myLangEl.value);
+  const bb = b.querySelector(".blockbtn");
+  if (bb) bb.onclick = () => {
+    if (!confirm((m.nick || "이 사람") + "님을 차단할까요? 이 사람 메시지가 더 이상 안 보여요.")) return;
+    blockUser(m.uid, m.nick); b.remove();
+  };
   cloudLogEl.appendChild(b); cloudLogEl.scrollTop = cloudLogEl.scrollHeight;
 }
 async function handleCloudMsg(m) {
   if (!m || cloudSeen.has(m.id)) return;
   cloudSeen.add(m.id);
+  if (isBlocked(m.uid)) return; // 차단한 사람 메시지는 무시
   const mine = m.uid === myUid;
   let tr = m.text;
   if (m.lang && m.lang !== myLangEl.value) { try { tr = await translate(m.text, m.lang, myLangEl.value); } catch (_) { tr = m.text; } }
-  addCloudBubble({ avatar: m.avatar, nick: m.nick, country: m.country, orig: m.text, tr: tr }, mine);
+  addCloudBubble({ uid: m.uid, avatar: m.avatar, nick: m.nick, country: m.country, orig: m.text, tr: tr }, mine);
+  if (!mine) notify("💬 " + (m.nick || "새 메시지"), tr);
 }
 async function joinCloud(room) {
   setCloudStatus("연결 중…");
@@ -1994,6 +2140,339 @@ function switchTab(name) {
 document.querySelectorAll(".tabbtn").forEach(b => { b.onclick = () => switchTab(b.getAttribute("data-tab")); });
 renderProfCard();
 switchTab("chat");
+
+/* =========================================================
+   🚫 차단 · 🔔 알림 · 🔒 앱잠금 · 🪪 계정  (설정 메뉴)
+========================================================= */
+let blockedUsers = [];
+try { blockedUsers = JSON.parse(localStorage.getItem("blockedUsers") || "[]"); } catch (_) { blockedUsers = []; }
+function saveBlocked() { try { localStorage.setItem("blockedUsers", JSON.stringify(blockedUsers)); } catch (_) {} }
+function isBlocked(uid) { return !!uid && blockedUsers.some(b => b.uid === uid); }
+function blockUser(uid, nick) { if (!uid || uid === myUid) return; if (!isBlocked(uid)) { blockedUsers.push({ uid, nick: nick || "익명" }); saveBlocked(); } }
+function unblockUser(uid) { blockedUsers = blockedUsers.filter(b => b.uid !== uid); saveBlocked(); }
+
+function notify(title, body) {
+  try {
+    if (!document.hidden) return;
+    if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
+    new Notification(title, { body: body || "", icon: "./icon-192.png" });
+  } catch (_) {}
+}
+
+(function initSettingsMenu() {
+  const toggle = (btnId, subId) => {
+    const b = document.getElementById(btnId), s = document.getElementById(subId);
+    if (b && s) b.onclick = () => { s.style.display = (s.style.display === "none" || !s.style.display) ? "block" : "none"; };
+  };
+  toggle("setBlockRow", "setBlockSub");
+  toggle("setNotifRow", "setNotifSub");
+  toggle("setLockRow", "setLockSub");
+  toggle("setAccountRow", "setAccountSub");
+
+  // 친구 목록 편집 → 친구 탭으로
+  const fr = document.getElementById("setFriendsRow");
+  if (fr) fr.onclick = () => { document.getElementById("settingsModal").classList.remove("open"); switchTab("friends"); };
+
+  // 차단 목록 렌더
+  window.renderBlockList = function () {
+    const el = document.getElementById("blockList");
+    const st = document.getElementById("blockStatus");
+    if (st) st.textContent = blockedUsers.length ? (blockedUsers.length + "명") : "";
+    if (!el) return;
+    if (!blockedUsers.length) { el.innerHTML = "차단한 사람이 없어요."; return; }
+    el.innerHTML = "";
+    blockedUsers.forEach(b => {
+      const row = document.createElement("div");
+      row.className = "blocked-item";
+      row.innerHTML = `<span>🚫 ${escapeHtml(b.nick || "익명")}</span>`;
+      const ub = document.createElement("button");
+      ub.className = "miniunblock"; ub.textContent = "차단 해제";
+      ub.onclick = () => { unblockUser(b.uid); window.renderBlockList(); };
+      row.appendChild(ub); el.appendChild(row);
+    });
+  };
+  renderBlockList();
+
+  // 알림
+  const nEnable = document.getElementById("notifEnableBtn");
+  const nStatus = document.getElementById("notifStatus");
+  function refreshNotif() {
+    if (typeof Notification === "undefined") { if (nStatus) nStatus.textContent = "미지원"; return; }
+    if (nStatus) nStatus.textContent = Notification.permission === "granted" ? "켜짐" : (Notification.permission === "denied" ? "차단됨" : "꺼짐");
+  }
+  refreshNotif();
+  if (nEnable) nEnable.onclick = async () => {
+    if (typeof Notification === "undefined") { setSettingsToast("이 브라우저는 알림을 지원하지 않아요."); return; }
+    try { await Notification.requestPermission(); } catch (_) {}
+    refreshNotif();
+  };
+
+  // 앱 잠금 (PIN)
+  const lStatus = document.getElementById("lockStatus");
+  function refreshLock() { if (lStatus) lStatus.textContent = localStorage.getItem("appPin") ? "켜짐" : "꺼짐"; }
+  refreshLock();
+  const pinSet = document.getElementById("pinSetBtn");
+  const pinClear = document.getElementById("pinClearBtn");
+  if (pinSet) pinSet.onclick = () => {
+    const v = (document.getElementById("pinInput").value || "").replace(/[^0-9]/g, "");
+    if (v.length !== 4) { setSettingsToast("숫자 4자리를 입력하세요."); return; }
+    try { localStorage.setItem("appPin", v); } catch (_) {}
+    document.getElementById("pinInput").value = "";
+    refreshLock(); setSettingsToast("앱 잠금이 설정됐어요.");
+  };
+  if (pinClear) pinClear.onclick = () => { try { localStorage.removeItem("appPin"); } catch (_) {} refreshLock(); setSettingsToast("앱 잠금을 해제했어요."); };
+
+  // 계정 · 데이터
+  const ac = document.getElementById("acctCode"); if (ac) ac.textContent = myUid;
+  const rd = document.getElementById("resetDataBtn");
+  if (rd) rd.onclick = () => {
+    if (!confirm("정말 이 기기의 모든 데이터(프로필·친구·설정)를 지우고 초기화할까요?")) return;
+    try { localStorage.clear(); } catch (_) {}
+    location.reload();
+  };
+
+  function setSettingsToast(msg) { const e = document.getElementById("setErr"); if (e) { e.style.color = "#059669"; e.textContent = msg; setTimeout(() => { e.textContent = ""; e.style.color = ""; }, 2500); } }
+})();
+
+/* 🔒 앱 잠금 화면: PIN이 설정돼 있으면 앱 열 때 입력 요구 */
+(function initLockScreen() {
+  const pin = (function () { try { return localStorage.getItem("appPin"); } catch (_) { return null; } })();
+  if (!pin) return;
+  const ls = document.getElementById("lockscreen");
+  const dots = document.getElementById("lockDots");
+  const pad = document.getElementById("lockPad");
+  if (!ls || !pad) return;
+  let entry = "";
+  const render = () => { dots.textContent = "●".repeat(entry.length) + "○".repeat(4 - entry.length); };
+  const keys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "⌫"];
+  keys.forEach(k => {
+    const b = document.createElement("button");
+    if (k === "") { b.style.visibility = "hidden"; }
+    b.textContent = k;
+    b.onclick = () => {
+      if (k === "⌫") { entry = entry.slice(0, -1); render(); return; }
+      if (!/[0-9]/.test(k)) return;
+      if (entry.length < 4) entry += k;
+      render();
+      if (entry.length === 4) {
+        if (entry === pin) { ls.classList.remove("on"); }
+        else { entry = ""; dots.textContent = "❌ 다시"; setTimeout(render, 700); }
+      }
+    };
+    pad.appendChild(b);
+  });
+  render();
+  ls.classList.add("on");
+})();
+
+/* =========================================================
+   📞 전화 3종: 친구와 전화 · 단체 통역통화 · 랜덤전화
+   (Supabase messages 테이블 재사용 — 서버 기반이라 어느 망에서나 잘 됨.
+    각자 자기 언어로 말하고, 받는 사람은 자기 언어로 듣습니다: STT→전송→상대가 자기 myLang으로 번역·TTS)
+========================================================= */
+(function initVoiceCall() {
+  let vRoom = null, vRoomRaw = null, vIsGroup = false, vChannel = null, vSeen = null, vMode = "friend", vRoster = {};
+  let rndChannel = null, rndWaiting = false, rndMatched = false;
+
+  const $ = id => document.getElementById(id);
+  function setCallMode(m) {
+    vMode = m;
+    if (m !== "random") stopRandom();
+    document.querySelectorAll(".callmode-btn").forEach(x => x.classList.toggle("sel", x.dataset.cmode === m));
+    document.querySelectorAll(".callmode").forEach(x => x.classList.remove("on"));
+    const p = $("cmode-" + m); if (p) p.classList.add("on");
+    if (m === "friend") renderCallFriends();
+  }
+  document.querySelectorAll(".callmode-btn").forEach(b => { b.onclick = () => setCallMode(b.dataset.cmode); });
+
+  // ---- 공용 통화 화면 표시/숨김 ----
+  function showLive(label, isGroup, raw) {
+    vIsGroup = !!isGroup; vRoomRaw = raw || null;
+    document.querySelector(".callmodes").style.display = "none";
+    document.querySelectorAll(".callmode").forEach(x => x.style.display = "none");
+    const vl = $("vroomLive"); vl.style.display = "flex"; vl.style.flexDirection = "column"; vl.style.flex = "1"; vl.style.minHeight = "0";
+    $("vroomLiveName").textContent = label || "통화 중";
+    $("vroomMyLang").textContent = L[myLangEl.value].flag + " " + L[myLangEl.value].name;
+    $("vroomLog").querySelectorAll(".bubble, .vsys").forEach(b => b.remove());
+    const e = $("vroomEmpty"); if (e) e.style.display = "";
+    vRoster = {}; renderVRoster();
+    $("vroomTypeBar").style.display = "none";
+    $("vmicHint").textContent = "🎤 버튼을 누르고 말하세요";
+  }
+  function hideLive() {
+    $("vroomLive").style.display = "none";
+    document.querySelector(".callmodes").style.display = "";
+    document.querySelectorAll(".callmode").forEach(x => x.style.display = "");
+    setCallMode(vMode);
+  }
+
+  // ---- 참여자 칩 ----
+  function vRosterAdd(nick, uid, avatar) { if (!uid) return; vRoster[uid] = { nick: nick || "익명", avatar: avatar || "🙂" }; renderVRoster(); }
+  function renderVRoster() { const el = $("vroster"); if (el) el.innerHTML = Object.values(vRoster).map(r => `<span class="vroster-chip">${r.avatar} ${escapeHtml(r.nick)}</span>`).join(""); }
+
+  // ---- 말풍선 ----
+  function vBubble(m, tr, mine) {
+    const e = $("vroomEmpty"); if (e) e.style.display = "none";
+    const b = document.createElement("div");
+    b.className = "bubble " + (mine ? "me" : "them");
+    const flag = m.country ? m.country.split(" ")[0] : "";
+    const who = (m.avatar || "🙂") + " " + escapeHtml(m.nick || "익명") + (flag ? " " + flag : "");
+    b.innerHTML = `<div class="who">${who}</div><div class="orig" dir="auto">${escapeHtml(m.text)}</div>` +
+      ((tr && tr !== m.text) ? `<div class="trans" dir="auto">${escapeHtml(tr)}</div>` : "") + `<div class="replay">🔊</div>`;
+    b.querySelector(".replay").onclick = () => speak(tr || m.text, myLangEl.value);
+    const log = $("vroomLog"); log.appendChild(b); log.scrollTop = log.scrollHeight;
+  }
+  function vSys(text) { const log = $("vroomLog"); const d = document.createElement("div"); d.className = "vsys"; d.style.cssText = "text-align:center;font-size:12px;color:var(--muted);margin:6px 0"; d.textContent = text; log.appendChild(d); log.scrollTop = log.scrollHeight; }
+
+  // ---- 수신 처리 ----
+  async function vHandle(m) {
+    if (!m || vSeen.has(m.id)) return; vSeen.add(m.id);
+    if (isBlocked(m.uid)) return;
+    const mine = m.uid === myUid;
+    if (m.text && m.text[0] === "§") {
+      if (m.text === "§join") { vRosterAdd(m.nick, m.uid, m.avatar); if (!mine) vSys((m.avatar || "🙂") + " " + (m.nick || "누군가") + " 님이 들어왔어요"); }
+      return;
+    }
+    vRosterAdd(m.nick, m.uid, m.avatar);
+    let tr = m.text;
+    if (m.lang && m.lang !== myLangEl.value) { try { tr = await translate(m.text, m.lang, myLangEl.value); } catch (_) { tr = m.text; } }
+    vBubble(m, tr, mine);
+    if (!mine) { speak(tr, myLangEl.value); notify("📞 " + (m.nick || "통화"), tr); }
+  }
+
+  async function vJoin(room, label, opts) {
+    opts = opts || {};
+    const sb = await ensureSbClient().catch(() => null);
+    if (!sb) { setSetupStatus("⚠️ 연결 실패 — 인터넷을 확인하세요."); return; }
+    vRoom = "vc_" + room; vSeen = new Set();
+    showLive(label, opts.isGroup, opts.raw);
+    if (vChannel) { try { sb.removeChannel(vChannel); } catch (_) {} }
+    vChannel = sb.channel("v-" + room + "-" + Date.now())
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: "room=eq." + vRoom }, p => vHandle(p.new))
+      .subscribe(async (status) => {
+        if (status === "SUBSCRIBED") { vSend("§join"); }
+        else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") { vSys("⚠️ 연결이 불안정해요."); }
+      });
+  }
+  async function vSend(text) {
+    if (!vRoom) return;
+    try {
+      const sb = await ensureSbClient(); const p = profile || {};
+      await sb.from("messages").insert({ room: vRoom, uid: myUid, nick: p.nick || "익명", avatar: p.avatar || "🙂", country: p.country || "", lang: myLangEl.value, text });
+    } catch (_) {}
+  }
+  async function vSay() {
+    if (!vRoom) return;
+    const btn = $("vmicBtn"); btn.classList.add("listening");
+    $("vmicHint").textContent = "🎧 듣는 중… 말하세요";
+    const text = await recognizeUntilSilence(myLangEl.value);
+    btn.classList.remove("listening");
+    if (text === "__NO_STT__") {
+      $("vroomTypeBar").style.display = "block";
+      $("vmicHint").textContent = "⌨️ " + L[myLangEl.value].name + "는 음성인식이 안 돼요. 아래에 입력하세요.";
+      return;
+    }
+    $("vmicHint").textContent = "🎤 버튼을 누르고 말하세요";
+    if (!text) return;
+    vSend(text);
+  }
+  async function vLeave() {
+    try { if (vChannel && sbClient) sbClient.removeChannel(vChannel); } catch (_) {}
+    vChannel = null; vRoom = null;
+    stopRandom();
+    hideLive();
+  }
+
+  // ---- 친구와 전화 ----
+  async function renderCallFriends() {
+    const el = $("callFriendList"); if (!el) return;
+    try {
+      const sb = await ensureSbClient();
+      const fr = await sb.from("friends").select("friend_uid").eq("uid", myUid);
+      const ids = (fr.data || []).map(f => f.friend_uid);
+      if (!ids.length) { el.innerHTML = '<div class="friend-empty" style="padding:14px">친구 탭에서 친구를 먼저 추가하세요.</div>'; return; }
+      const profs = await sb.from("profiles").select("*").in("uid", ids);
+      el.innerHTML = "";
+      (profs.data || []).forEach(p => {
+        const av = p.photo ? `<img src="${p.photo}" style="width:100%;height:100%;object-fit:cover">` : (p.avatar || "🙂");
+        const item = document.createElement("div"); item.className = "vfriend-item";
+        item.innerHTML = `<div class="fi-av">${av}</div><div class="fi-info"><div class="fi-nick">${escapeHtml(p.nick || "익명")}</div><div class="fi-country">📞 눌러서 통역 통화</div></div>`;
+        item.onclick = () => { const pair = [myUid, p.uid].sort().join("_"); vJoin("pair_" + pair, "📞 " + (p.nick || "친구") + " 와 통화"); };
+        el.appendChild(item);
+      });
+    } catch (e) { el.innerHTML = '<div class="friend-empty" style="padding:14px">친구 목록 로드 실패 — 인터넷 확인</div>'; }
+  }
+
+  // ---- 랜덤 전화 (로비 매칭) ----
+  function setRnd(m) { const e = $("randomStatus"); if (e) e.textContent = m || ""; }
+  function setSetupStatus(m) { const e = $("vroomSetupStatus"); if (e) e.textContent = m || ""; setRnd(m); }
+  function stopRandom() { rndWaiting = false; try { if (rndChannel && sbClient) sbClient.removeChannel(rndChannel); } catch (_) {} rndChannel = null; }
+  async function randomStart() {
+    const sb = await ensureSbClient().catch(() => null);
+    if (!sb) { setRnd("⚠️ 연결 실패 — 인터넷을 확인하세요."); return; }
+    rndMatched = false; rndWaiting = true;
+    setRnd("🔎 상대를 찾는 중… (상대도 시작하면 연결돼요)");
+    $("randomNextBtn").style.display = "none";
+    const lobby = "vc_lobby";
+    stopRandom(); rndWaiting = true;
+    rndChannel = sb.channel("lobby-" + Date.now())
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: "room=eq." + lobby }, p => rndOnWait(p.new))
+      .subscribe(async (st) => {
+        if (st !== "SUBSCRIBED") return;
+        // 최근 40초 내 대기자와 즉시 매칭 시도
+        try {
+          const res = await sb.from("messages").select("*").eq("room", lobby).order("id", { ascending: false }).limit(15);
+          const now = Date.now();
+          const cand = (res.data || []).find(w => w.uid && w.uid !== myUid && w.text === "§wait" && (now - new Date(w.created_at).getTime() < 40000));
+          await sb.from("messages").insert({ room: lobby, uid: myUid, nick: (profile && profile.nick) || "익명", avatar: (profile && profile.avatar) || "🙂", country: (profile && profile.country) || "", lang: myLangEl.value, text: "§wait" });
+          if (cand) rndMatch(cand.uid);
+        } catch (_) {}
+      });
+  }
+  function rndOnWait(m) { if (rndMatched || !rndWaiting) return; if (m.uid && m.uid !== myUid && m.text === "§wait") rndMatch(m.uid); }
+  function rndMatch(otherUid) {
+    if (rndMatched) return; rndMatched = true; rndWaiting = false;
+    stopRandom();
+    setRnd("✅ 연결됐어요!");
+    const pair = [myUid, otherUid].sort().join("_");
+    vJoin("rnd_" + pair, "🎲 랜덤 상대와 통화");
+    $("randomNextBtn").style.display = "block";
+  }
+
+  // ---- 버튼 배선 ----
+  $("vmicBtn").onclick = vSay;
+  $("vroomTypeBtn").onclick = () => { const inp = $("vroomTypeInput"); const t = inp.value.trim(); if (!t) return; inp.value = ""; vSend(t); };
+  $("vroomTypeInput").addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("vroomTypeBtn").click(); } });
+  $("vroomLeaveBtn").onclick = vLeave;
+  $("vroomJoinBtn").onclick = () => {
+    let r = ($("vroomName").value.trim() || "team-call").toLowerCase().replace(/[^a-z0-9가-힣_-]/g, "");
+    if (!r) r = "team-call";
+    vJoin(r, "🌐 " + r + " 통화방", { isGroup: true, raw: r });
+  };
+  $("randomStartBtn").onclick = randomStart;
+  $("randomNextBtn").onclick = () => { vLeave(); setTimeout(randomStart, 300); };
+  $("vroomInviteBtn").onclick = async () => {
+    let msg;
+    if (vIsGroup && vRoomRaw) {
+      const url = location.origin + location.pathname + "?vroom=" + encodeURIComponent(vRoomRaw);
+      msg = "LINKO 단체 통역통화에 초대할게요! 📞\n각자 자기 나라 말로 통화하면 자동 번역돼요.\n\n방: " + vRoomRaw + "\n" + url;
+    } else {
+      msg = "LINKO에서 통역 통화해요! 📞 앱을 열고 전화 탭으로 오세요.\n" + location.origin + location.pathname;
+    }
+    if (navigator.share) { try { await navigator.share({ title: "LINKO 통역 통화 초대", text: msg }); } catch (_) {} }
+    else { try { await navigator.clipboard.writeText(msg); vSys("초대 메시지를 복사했어요!"); } catch (_) {} }
+  };
+
+  setCallMode("friend");
+  // 초대 링크(?vroom=방)로 들어오면 단체 통역통화 자동 입장
+  (function () {
+    try {
+      const vr = new URLSearchParams(location.search).get("vroom");
+      if (!vr) return;
+      setTimeout(() => { switchTab("call"); setCallMode("group"); $("vroomName").value = vr; vJoin(vr.toLowerCase(), "🌐 " + vr + " 통화방", { isGroup: true, raw: vr }); }, 700);
+    } catch (_) {}
+  })();
+})();
 
 /* =========================================================
    🎮 게임 (허브 + 비행기 멀리 날리기 + 오목)
