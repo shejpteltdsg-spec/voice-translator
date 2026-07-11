@@ -259,7 +259,8 @@
   .fi-country { font-size: 12px; color: var(--muted); margin-top: 2px; }
 
   /* ===== 헤더 설정 버튼 + 설정/프로필 모달 ===== */
-  .gear { flex: 0 0 auto; background: #f1f2f5; border: none; width: 36px; height: 36px; border-radius: 50%; font-size: 17px; cursor: pointer; color: #4b4d55; display: grid; place-items: center; }
+  .gear { flex: 0 0 auto; background: #f1f2f5; border: none; width: 38px; height: 38px; border-radius: 50%; font-size: 18px; line-height: 1; padding: 0; cursor: pointer; color: #4b4d55; display: inline-flex; align-items: center; justify-content: center; overflow: hidden; -webkit-tap-highlight-color: transparent; }
+  .gear > * { line-height: 1; }
   .gear:active { background: #e4e5ea; }
   .gear:first-of-type { margin-left: auto; }
   .settings { display: none; position: fixed; inset: 0; z-index: 90; align-items: center; justify-content: center; padding: 20px; background: rgba(0,0,0,.45); }
@@ -437,7 +438,6 @@
       <span class="tagline" data-i18n="tagline">언어가 달라도, 막힘없이</span>
     </div>
     <button class="gear" id="gamesBtn" title="게임">🎮</button>
-    <button class="gear" id="plusBtn" title="친구 추가">➕</button>
     <button class="gear" id="settingsBtn" title="설정">⚙️</button>
   </header>
 
@@ -527,7 +527,8 @@
       <div class="profcard" id="profCard"></div>
       <div class="fsection">
         <div class="fhead">👥 내 친구</div>
-        <div class="friendlist" id="friendList"><div class="friend-empty">아직 친구가 없어요.<br>오른쪽 위 <b>➕</b> 로 친구를 추가·초대해보세요!</div></div>
+        <button class="cbtn" id="plusBtn" style="width:100%;margin-bottom:10px;background:linear-gradient(135deg,#10b981,#22c55e)">➕ 친구 추가 · 초대하기</button>
+        <div class="friendlist" id="friendList"><div class="friend-empty">아직 친구가 없어요.<br>위 <b>➕ 친구 추가·초대하기</b> 버튼으로 시작해보세요!</div></div>
       </div>
       <div class="themebar">
         <button class="themetoggle" id="themeToggle">🎨 배경 꾸미기 ▾</button>
@@ -552,6 +553,7 @@
           </div>
           <div id="cloudLive" style="display:none">
             <div class="clive">☁️ <span id="cloudRoomName"></span> 방 접속 중</div>
+            <button class="cbtn" id="cloudInviteBtn" style="width:100%;margin-bottom:8px;background:linear-gradient(135deg,#10b981,#22c55e)">👥 이 방에 친구 초대하기</button>
             <button class="cbtn hang" id="cloudLeaveBtn">나가기</button>
           </div>
         </div>
@@ -631,8 +633,9 @@
       <div class="docbar">
         <button class="voicetoggle" id="docToggle" style="color:#059669">📄 글·사진 번역 (문서·사진) ▾</button>
         <div class="docpanel" id="docPanel">
-          <textarea id="docInput" class="docarea" placeholder="번역할 글을 여기 붙여넣으세요…"></textarea>
-          <button class="cbtn" id="docBtn" style="width:100%;background:linear-gradient(135deg,#10b981,#059669)">📄 글 번역하기 (→ 내 언어)</button>
+          <textarea id="docInput" class="docarea" placeholder="번역할 글을 입력하세요… (예: 배고파요)"></textarea>
+          <div class="docrow"><span>🎯 어떤 언어로:</span><select id="docTarget" class="chatlang"></select></div>
+          <button class="cbtn" id="docBtn" style="width:100%;background:linear-gradient(135deg,#10b981,#059669)">🌐 번역하기</button>
           <label class="docphoto" id="photoLabel">📷 사진 찍기 / 올리기
             <input type="file" id="photoInput" accept="image/*" hidden />
           </label>
@@ -1806,11 +1809,18 @@ function showDocResult(orig, tr, status) {
   if (status) { el.innerHTML = `<div class="dstatus">${status}</div>`; return; }
   el.innerHTML = `<div class="dorig">${escapeHtml(orig)}</div><div class="dtr" dir="auto">${escapeHtml(tr)}</div>`;
 }
+// 글 번역 목표 언어 선택(전 언어). 기본값은 상대 언어(없으면 영어).
+(function () {
+  const s = document.getElementById("docTarget");
+  LANGS.forEach(l => s.appendChild(new Option(l.flag + " " + l.name, l.code)));
+  s.value = theirLangEl.value || "en";
+})();
 document.getElementById("docBtn").onclick = async () => {
   const text = document.getElementById("docInput").value.trim();
   if (!text) return;
-  showDocResult(null, null, "🌐 번역 중…");
-  try { const tr = await translateLong(text, myLangEl.value); showDocResult(text, tr); }
+  const target = document.getElementById("docTarget").value || myLangEl.value;
+  showDocResult(null, null, "🌐 " + L[target].name + "로 번역 중…");
+  try { const tr = await translateLong(text, target); showDocResult(text, tr); }
   catch (e) { showDocResult(null, null, "⚠️ 번역 실패 — 인터넷을 확인하세요."); }
 };
 
@@ -1930,6 +1940,34 @@ const COUNTRY_CODES = [["+82","🇰🇷"],["+65","🇸🇬"],["+95","🇲🇲"],
       if (inp) inp.value = add;
       setFriendStatus("친구 코드가 입력됐어요! ‘➕ 추가’를 눌러주세요.");
     }, 400);
+  } catch (_) {}
+})();
+
+// 💬 팀 채팅 방 초대: 링크(?room=방이름)로 들어오면 자동 입장
+function roomInviteMsg(room) {
+  const url = location.origin + location.pathname + "?room=" + encodeURIComponent(room);
+  return "LINKO 팀 채팅방에 초대할게요! 💬\n각자 자기 나라 말로 대화하면 자동으로 번역돼요.\n\n방: " + room + "\n" + url;
+}
+(function wireCloudInvite() {
+  const btn = document.getElementById("cloudInviteBtn");
+  if (!btn) return;
+  btn.onclick = async () => {
+    const room = cloudRoom || (document.getElementById("cloudRoom").value.trim() || "team").toLowerCase();
+    const msg = roomInviteMsg(room);
+    if (navigator.share) { try { await navigator.share({ title: "LINKO 팀 채팅 초대", text: msg }); } catch (_) {} }
+    else { try { await navigator.clipboard.writeText(msg); setCloudStatus("초대 메시지를 복사했어요! 카톡·문자에 붙여넣어 보내세요."); } catch (_) {} }
+  };
+})();
+(function handleRoomParam() {
+  try {
+    const room = new URLSearchParams(location.search).get("room");
+    if (!room) return;
+    setTimeout(() => {
+      if (typeof switchTab === "function") switchTab("chat");
+      const inp = document.getElementById("cloudRoom");
+      if (inp) inp.value = room;
+      if (typeof joinCloud === "function") joinCloud(room.toLowerCase());
+    }, 500);
   } catch (_) {}
 })();
 
