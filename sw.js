@@ -1,6 +1,6 @@
 // 오프라인 지원 + 설치용 서비스워커
-const CACHE = "translator-v7";
-const ASSETS = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./icon-180.png"];
+const CACHE = "translator-v8";
+const ASSETS = ["./", "./index.html", "./install.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./icon-180.png"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
