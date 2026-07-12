@@ -292,7 +292,9 @@
   .volbar-label { font-size: 13px; font-weight: 700; color: var(--ink); flex: 1; }
   .volbtn { width: 40px; height: 40px; border-radius: 50%; border: 1.5px solid var(--line); background: #fff; color: var(--brand); font-size: 18px; font-weight: 800; cursor: pointer; display: grid; place-items: center; }
   .volbtn:active { background: var(--brand-soft); }
-  .volpct { min-width: 46px; text-align: center; font-size: 15px; font-weight: 800; color: var(--brand); }
+  .volpct { min-width: 52px; text-align: center; font-size: 15px; font-weight: 800; color: var(--brand); }
+  .natvoice-btn { display: block; margin: 0 14px 8px; font-family: inherit; font-size: 13px; font-weight: 700; border: 1.5px solid var(--line); background: #fff; color: var(--muted); border-radius: 12px; padding: 9px 12px; cursor: pointer; width: calc(100% - 28px); }
+  .natvoice-btn.on { border-color: var(--brand); background: var(--brand-soft); color: var(--brand); }
   .blockbtn { display: block; border: none; background: transparent; font-size: 12px; cursor: pointer; opacity: .5; margin-top: 4px; padding: 0; }
   .blockbtn:active { opacity: 1; }
 
@@ -788,9 +790,10 @@
       <div class="volbar">
         <span class="volbar-label">🔊 소리 크기</span>
         <button class="volbtn" id="volDown">➖</button>
-        <span class="volpct" id="volPct">100%</span>
+        <span class="volpct" id="volPct">250%</span>
         <button class="volbtn" id="volUp">➕</button>
       </div>
+      <button class="natvoice-btn" id="natVoiceBtn">🗣️ 자연스러운 목소리 ✅</button>
       <div class="docbar">
         <button class="voicetoggle" id="docToggle" style="color:#059669">📄 글·사진 번역 (문서·사진) ▾</button>
         <div class="docpanel" id="docPanel">
@@ -1143,13 +1146,13 @@ async function translate(text, from, to) {
    읽어주기 (TTS) + 목소리 선택 (남/여 · 여러 목소리)
 ========================================================= */
 let voicePref = {}, genderPref = {};   // {langCode: voiceURI}, {langCode: 'M'|'F'}
-let ttsPitch = 1, ttsRate = 0.95, ttsVolume = 1;   // 내 목소리 맞춤(높낮이/속도/크기)
+let ttsPitch = 1, ttsRate = 0.95, ttsVolPct = 250; // 높낮이/속도 + 소리크기%(자연음성은 증폭, 기본음성은 최대100%)
 try {
   voicePref  = JSON.parse(localStorage.getItem("voicePref")  || "{}");
   genderPref = JSON.parse(localStorage.getItem("genderPref") || "{}");
   const p = parseFloat(localStorage.getItem("ttsPitch")); if (!isNaN(p)) ttsPitch = p;
   const r = parseFloat(localStorage.getItem("ttsRate"));  if (!isNaN(r)) ttsRate = r;
-  const vol = parseFloat(localStorage.getItem("ttsVolume")); if (!isNaN(vol)) ttsVolume = vol;
+  const vp = parseInt(localStorage.getItem("ttsVolPct")); if (!isNaN(vp)) ttsVolPct = vp;
 } catch (_) {}
 function save() {
   try {
@@ -1157,7 +1160,7 @@ function save() {
     localStorage.setItem("genderPref", JSON.stringify(genderPref));
     localStorage.setItem("ttsPitch", String(ttsPitch));
     localStorage.setItem("ttsRate", String(ttsRate));
-    localStorage.setItem("ttsVolume", String(ttsVolume));
+    localStorage.setItem("ttsVolPct", String(ttsVolPct));
   } catch (_) {}
 }
 
@@ -1202,7 +1205,7 @@ function speakRobust(text, langCode, onDone) {
     const u = new SpeechSynthesisUtterance(text);
     u.lang = L[langCode].tts;
     if (useChosen) { const v = getVoiceFor(langCode); if (v) u.voice = v; }
-    u.rate = ttsRate; u.pitch = ttsPitch; u.volume = ttsVolume;
+    u.rate = ttsRate; u.pitch = ttsPitch; u.volume = Math.min(1, ttsVolPct / 100);
     u.onstart = () => { started = true; };
     u.onend = () => done();
     u.onerror = () => {
@@ -1225,7 +1228,82 @@ function speakRobust(text, langCode, onDone) {
 
   setTimeout(() => start(true), 70); // cancel 직후 살짝 대기 → 모바일 발화 유실 방지
 }
-function speak(text, langCode) { speakRobust(text, langCode); }
+/* ===== 🗣️ 자연스러운 목소리(구글 TTS) + 소리 증폭 =====
+   브라우저 기본 음성은 로봇 같고 최대 100%가 한계 → 구글 번역 음성을 프록시로 받아
+   Web Audio 게인으로 최대 4배 증폭 재생. 실패 2번이면 기본 음성으로 자동 전환. */
+let useNaturalVoice = true;
+try { if (localStorage.getItem("naturalVoice") === "0") useNaturalVoice = false; } catch (_) {}
+let _audioCtx = null, _curSrc = null, _naturalFails = 0, _naturalOff = false;
+const _ttsCache = new Map();
+function audioCtx() {
+  const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return null;
+  if (!_audioCtx) { try { _audioCtx = new AC(); } catch (_) { return null; } }
+  if (_audioCtx.state === "suspended") { _audioCtx.resume().catch(() => {}); }
+  return _audioCtx;
+}
+function chunkText(t, max) {
+  const parts = []; let s = (t || "").trim();
+  while (s.length > max) {
+    let cut = s.slice(0, max);
+    let p = Math.max(cut.lastIndexOf(". "), cut.lastIndexOf(", "), cut.lastIndexOf("。"), cut.lastIndexOf("! "), cut.lastIndexOf("? "), cut.lastIndexOf(" "));
+    if (p < 40) p = max - 1;
+    parts.push(s.slice(0, p + 1).trim()); s = s.slice(p + 1);
+  }
+  if (s.trim()) parts.push(s.trim());
+  return parts;
+}
+function fetchTimeout(url, ms) {
+  return new Promise((res, rej) => {
+    const ctl = ("AbortController" in window) ? new AbortController() : null;
+    const to = setTimeout(() => { if (ctl) ctl.abort(); rej(new Error("timeout")); }, ms);
+    fetch(url, ctl ? { signal: ctl.signal } : {}).then(r => { clearTimeout(to); res(r); }).catch(e => { clearTimeout(to); rej(e); });
+  });
+}
+function stopNatural() { try { if (_curSrc) { _curSrc.onended = null; _curSrc.stop(); } } catch (_) {} _curSrc = null; }
+function playBuffer(ctx, buf, gain) {
+  return new Promise((resolve) => {
+    try {
+      const s = ctx.createBufferSource(); s.buffer = buf;
+      const g = ctx.createGain(); g.gain.value = gain;
+      const comp = ctx.createDynamicsCompressor(); // 크게 키워도 깨지지 않게
+      try { comp.threshold.value = -18; comp.ratio.value = 12; } catch (_) {}
+      s.connect(g); g.connect(comp); comp.connect(ctx.destination);
+      s.onended = () => resolve(); _curSrc = s; s.start();
+    } catch (_) { resolve(); }
+  });
+}
+async function speakNatural(text, lang) {
+  const ctx = audioCtx(); if (!ctx) throw new Error("noctx");
+  const tl = gtxCode(lang);
+  const gain = Math.max(0.5, Math.min(4, ttsVolPct / 100));
+  const chunks = chunkText(text, 190);
+  for (const c of chunks) {
+    const key = tl + "|" + c;
+    let buf = _ttsCache.get(key);
+    if (!buf) {
+      const url = "https://api.allorigins.win/raw?url=" + encodeURIComponent("https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=" + tl + "&q=" + encodeURIComponent(c));
+      const resp = await fetchTimeout(url, 6000);
+      if (!resp.ok) throw new Error("http" + resp.status);
+      const ab = await resp.arrayBuffer();
+      if (ab.byteLength < 400) throw new Error("tooShort");
+      buf = await ctx.decodeAudioData(ab);
+      _ttsCache.set(key, buf); if (_ttsCache.size > 60) _ttsCache.delete(_ttsCache.keys().next().value);
+    }
+    await playBuffer(ctx, buf, gain);
+  }
+}
+function speakSmart(text, langCode, onDone) {
+  if (!text) { if (onDone) onDone(); return; }
+  if (useNaturalVoice && !_naturalOff) {
+    stopNatural();
+    try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (_) {}
+    speakNatural(text, langCode).then(() => { _naturalFails = 0; if (onDone) onDone(); })
+      .catch(() => { _naturalFails++; if (_naturalFails >= 2) _naturalOff = true; speakRobust(text, langCode, onDone); });
+  } else {
+    speakRobust(text, langCode, onDone);
+  }
+}
+function speak(text, langCode) { speakSmart(text, langCode); }
 
 /* ----- 목소리 설정 패널 ----- */
 const voicePanel = document.getElementById("voicePanel");
@@ -1233,25 +1311,23 @@ const voiceToggle = document.getElementById("voiceToggle");
 voiceToggle.onclick = () => { voicePanel.classList.toggle("open"); buildVoicePanel(); };
 function previewVoice(code) { speak(L[code].hello || "Hello", code); }
 
-/* 🔊 소리 크기 업/다운 (모든 읽어주기에 적용) */
+/* 🔊 소리 크기(50~400%) 업/다운 + 🗣️ 자연스러운 목소리 토글 (모든 읽어주기에 적용) */
 (function initVolume() {
   const pct = document.getElementById("volPct");
   const up = document.getElementById("volUp");
   const down = document.getElementById("volDown");
+  const natBtn = document.getElementById("natVoiceBtn");
   if (!pct || !up || !down) return;
-  const render = () => { pct.textContent = Math.round(ttsVolume * 100) + "%"; };
+  const render = () => { pct.textContent = ttsVolPct + "%"; };
   render();
-  up.onclick = () => {
-    if (ttsVolume >= 1) { ttsVolume = 1; render(); setStatus("🔊 앱 소리는 최대예요! 그래도 작으면 폰의 볼륨 버튼(＋)도 올려주세요."); speak(L[myLangEl.value].hello || "테스트", myLangEl.value); return; }
-    ttsVolume = Math.min(1, Math.round((ttsVolume + 0.1) * 10) / 10); save(); render();
-    setStatus("🔊 소리 크기 " + Math.round(ttsVolume * 100) + "%");
-    speak(L[myLangEl.value].hello || "테스트", myLangEl.value);
-  };
-  down.onclick = () => {
-    ttsVolume = Math.max(0.1, Math.round((ttsVolume - 0.1) * 10) / 10); save(); render();
-    setStatus("🔉 소리 크기 " + Math.round(ttsVolume * 100) + "%");
-    speak(L[myLangEl.value].hello || "테스트", myLangEl.value);
-  };
+  const preview = () => { setStatus("🔊 소리 크기 " + ttsVolPct + "%"); speak(L[myLangEl.value].hello || "안녕하세요", myLangEl.value); };
+  up.onclick = () => { ttsVolPct = Math.min(400, ttsVolPct + 50); save(); render(); preview(); };
+  down.onclick = () => { ttsVolPct = Math.max(50, ttsVolPct - 50); save(); render(); preview(); };
+  if (natBtn) {
+    const rn = () => { natBtn.textContent = useNaturalVoice ? "🗣️ 자연스러운 목소리 ✅" : "🤖 기본(빠른) 목소리"; natBtn.classList.toggle("on", useNaturalVoice); };
+    rn();
+    natBtn.onclick = () => { useNaturalVoice = !useNaturalVoice; _naturalOff = false; _naturalFails = 0; try { localStorage.setItem("naturalVoice", useNaturalVoice ? "1" : "0"); } catch (_) {} rn(); preview(); };
+  }
 })();
 
 function buildVoicePanel() {
@@ -1423,7 +1499,7 @@ function openTextFallback(fromLang, toLang, side) {
 
 // 번역문을 소리 내어 읽고, 다 읽으면 resolve (자동 루프용)
 function speakThen(text, lang) {
-  return new Promise((resolve) => speakRobust(text, lang, resolve));
+  return new Promise((resolve) => speakSmart(text, lang, resolve));
 }
 
 async function autoLoop() {
