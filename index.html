@@ -1241,6 +1241,25 @@ function audioCtx() {
   if (_audioCtx.state === "suspended") { _audioCtx.resume().catch(() => {}); }
   return _audioCtx;
 }
+// 🔓 오디오 잠금 해제: 아이폰은 첫 터치 때 오디오를 깨워야 이후 '자동 읽기'가 소리가 남
+let _audioUnlocked = false;
+function unlockAudio() {
+  const ctx = audioCtx(); if (!ctx) return;
+  if (ctx.state === "suspended") ctx.resume().catch(() => {});
+  try { const b = ctx.createBuffer(1, 1, 22050); const s = ctx.createBufferSource(); s.buffer = b; s.connect(ctx.destination); s.start(0); } catch (_) {}
+  if (!_audioUnlocked) { try { if (window.speechSynthesis) { const u = new SpeechSynthesisUtterance(" "); u.volume = 0; speechSynthesis.speak(u); } } catch (_) {} }
+  _audioUnlocked = true;
+}
+["touchend", "pointerdown", "mousedown", "click", "keydown"].forEach(ev => window.addEventListener(ev, unlockAudio, { passive: true }));
+// iOS 사파리 호환: decodeAudioData 콜백/프로미스 양쪽 지원
+function decodeAudio(ctx, ab) {
+  return new Promise((res, rej) => {
+    let settled = false;
+    const ok = b => { if (!settled) { settled = true; res(b); } };
+    const no = e => { if (!settled) { settled = true; rej(e || new Error("decode")); } };
+    try { const p = ctx.decodeAudioData(ab, ok, no); if (p && p.then) p.then(ok, no); } catch (e) { no(e); }
+  });
+}
 function chunkText(t, max) {
   const parts = []; let s = (t || "").trim();
   while (s.length > max) {
@@ -1266,10 +1285,30 @@ function playBuffer(ctx, buf, gain) {
       const s = ctx.createBufferSource(); s.buffer = buf;
       const g = ctx.createGain(); g.gain.value = gain;
       const comp = ctx.createDynamicsCompressor(); // 크게 키워도 깨지지 않게
-      try { comp.threshold.value = -18; comp.ratio.value = 12; } catch (_) {}
-      s.connect(g); g.connect(comp); comp.connect(ctx.destination);
+      try { comp.threshold.value = -20; comp.ratio.value = 12; comp.knee.value = 6; } catch (_) {}
+      const makeup = ctx.createGain(); makeup.gain.value = 1.7; // 컴프레서 후 보정으로 더 크게(스피커폰 느낌)
+      s.connect(g); g.connect(comp); comp.connect(makeup); makeup.connect(ctx.destination);
       s.onended = () => resolve(); _curSrc = s; s.start();
     } catch (_) { resolve(); }
+  });
+}
+const TTS_PROXIES = [
+  u => "https://api.allorigins.win/raw?url=" + encodeURIComponent(u),
+  u => "https://api.codetabs.com/v1/proxy/?quest=" + encodeURIComponent(u)
+];
+// 여러 프록시에 동시 요청 → 먼저 성공하는 오디오 사용(안정성·속도)
+function fetchAudioRace(ttsUrl) {
+  return new Promise((resolve, reject) => {
+    let pending = TTS_PROXIES.length, done = false;
+    TTS_PROXIES.forEach(proxy => {
+      fetchTimeout(proxy(ttsUrl), 6000).then(async resp => {
+        if (done) return;
+        if (!resp.ok) throw new Error("http");
+        const b = await resp.arrayBuffer();
+        if (b.byteLength < 400) throw new Error("short");
+        if (!done) { done = true; resolve(b); }
+      }).catch(() => { pending--; if (pending === 0 && !done) { done = true; reject(new Error("allproxy")); } });
+    });
   });
 }
 async function speakNatural(text, lang) {
@@ -1281,12 +1320,9 @@ async function speakNatural(text, lang) {
     const key = tl + "|" + c;
     let buf = _ttsCache.get(key);
     if (!buf) {
-      const url = "https://api.allorigins.win/raw?url=" + encodeURIComponent("https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=" + tl + "&q=" + encodeURIComponent(c));
-      const resp = await fetchTimeout(url, 6000);
-      if (!resp.ok) throw new Error("http" + resp.status);
-      const ab = await resp.arrayBuffer();
-      if (ab.byteLength < 400) throw new Error("tooShort");
-      buf = await ctx.decodeAudioData(ab);
+      const ttsUrl = "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=" + tl + "&q=" + encodeURIComponent(c);
+      const ab = await fetchAudioRace(ttsUrl);
+      buf = await decodeAudio(ctx, ab);
       _ttsCache.set(key, buf); if (_ttsCache.size > 60) _ttsCache.delete(_ttsCache.keys().next().value);
     }
     await playBuffer(ctx, buf, gain);
@@ -2089,7 +2125,7 @@ document.getElementById("docBtn").onclick = async () => {
   if (!text) return;
   const target = document.getElementById("docTarget").value || myLangEl.value;
   showDocResult(null, null, "🌐 " + L[target].name + "로 번역 중…");
-  try { const tr = await translateLong(text, target); showDocResult(text, tr); }
+  try { const tr = await translateLong(text, target); showDocResult(text, tr); speak(tr, target); }
   catch (e) { showDocResult(null, null, "⚠️ 번역 실패 — 인터넷을 확인하세요."); }
 };
 
@@ -3125,7 +3161,13 @@ function notify(title, body) {
   function buildOmok() {
     const N = 13, DIRS = [[1, 0], [0, 1], [1, 1], [1, -1]];
     stage.innerHTML =
-      '<div class="omok-mode"><button class="om-mode sel" data-m="ai">🤖 AI와 대결</button><button class="om-mode" data-m="pvp">👥 친구와 (2인)</button></div>' +
+      '<div class="omok-mode"><button class="om-mode sel" data-m="ai">🤖 AI</button><button class="om-mode" data-m="pvp">👥 2인</button><button class="om-mode" data-m="online">🌐 친구 온라인</button></div>' +
+      '<div id="omOnlineSetup" style="display:none;padding:6px 14px">' +
+        '<div class="callrow"><button class="cbtn host" id="omHost">🆕 방 만들기</button><button class="cbtn join" id="omJoinBtn">🔑 코드 입력</button></div>' +
+        '<div id="omHostArea" style="display:none"><div class="ccode" id="omCode">…</div><button class="ccopy" id="omCopy">📋 코드 복사·공유</button><div class="cnote">상대가 이 코드로 들어오면 시작돼요. 당신은 ⚫흑(선공).</div></div>' +
+        '<div id="omJoinArea" style="display:none"><input id="omCodeInput" class="cinput" placeholder="코드 입력" maxlength="5" autocomplete="off" style="text-transform:uppercase"><button class="cbtn" id="omConnect" style="width:100%;margin-top:8px">연결하기</button></div>' +
+        '<div class="cnote" id="omNetStatus"></div>' +
+      '</div>' +
       '<div class="omok-info" id="oInfo">⚫ 흑돌 차례</div>' +
       '<div class="omok-board" id="oBoard"></div>' +
       '<button class="omok-reset" id="oReset">🔄 새 게임</button>';
@@ -3133,6 +3175,7 @@ function notify(title, body) {
     const cellPx = Math.max(20, Math.min(28, Math.floor((Math.min(window.innerWidth, 460) - 44) / N)));
     board.style.gridTemplateColumns = "repeat(" + N + ", " + cellPx + "px)";
     let grid, turn, over, mode = "ai", aiThinking = false;
+    let onRoom = null, onColor = 0, onChannel = null, onSeen = null, onReady = false;
     function get(x, y) { return (x < 0 || y < 0 || x >= N || y >= N) ? -1 : grid[y][x]; }
     function cellAt(x, y) { return board.children[y * N + x]; }
     function newGame() {
@@ -3143,15 +3186,28 @@ function notify(title, body) {
     function humanPlace(x, y) {
       if (over || aiThinking || grid[y][x]) return;
       if (mode === "ai" && turn !== 1) return;
+      if (mode === "online") {
+        if (!onReady) { omStatus("상대가 아직 안 들어왔어요."); return; }
+        if (turn !== onColor) return;               // 내 차례가 아님
+        doPlace(x, y, onColor); omSend({ t: "move", x, y, c: onColor }); return;
+      }
       doPlace(x, y, turn);
     }
     function doPlace(x, y, p) {
       grid[y][x] = p; const s = document.createElement("div"); s.className = "stone " + (p === 1 ? "b" : "w"); cellAt(x, y).appendChild(s);
-      if (win(x, y, p)) { over = true; info.textContent = mode === "ai" ? (p === 1 ? "⚫ 당신 승리! 🎉" : "⚪ AI 승리 😢 다시!") : ((p === 1 ? "⚫ 흑" : "⚪ 백") + "돌 승리! 🎉"); return; }
+      if (win(x, y, p)) {
+        over = true;
+        info.textContent = mode === "ai" ? (p === 1 ? "⚫ 당신 승리! 🎉" : "⚪ AI 승리 😢 다시!")
+          : mode === "online" ? (p === onColor ? "🎉 당신 승리!" : "😢 상대 승리! 다시 도전!")
+          : ((p === 1 ? "⚫ 흑" : "⚪ 백") + "돌 승리! 🎉");
+        return;
+      }
       turn = p === 1 ? 2 : 1;
       if (mode === "ai") {
         if (turn === 2) { info.textContent = "🤖 AI 생각 중…"; aiThinking = true; setTimeout(aiTurn, 320); }
         else info.textContent = "⚫ 당신(흑) 차례";
+      } else if (mode === "online") {
+        info.textContent = (turn === onColor) ? "🟢 당신 차례예요!" : "⏳ 상대 차례…";
       } else info.textContent = turn === 1 ? "⚫ 흑돌 차례" : "⚪ 백돌 차례";
     }
     function aiTurn() { const mv = bestMove(2); aiThinking = false; if (mv && !over) doPlace(mv.x, mv.y, 2); }
@@ -3189,8 +3245,63 @@ function notify(title, body) {
       }
       return false;
     }
-    stage.querySelectorAll(".om-mode").forEach(b => b.onclick = () => { mode = b.dataset.m; stage.querySelectorAll(".om-mode").forEach(m => m.classList.toggle("sel", m === b)); newGame(); });
-    document.getElementById("oReset").onclick = newGame;
+    // ===== 🌐 온라인 대결 (Supabase messages 재사용) =====
+    function omStatus(s) { const e = document.getElementById("omNetStatus"); if (e) e.textContent = s || ""; }
+    function omSend(obj) {
+      if (!onRoom) return;
+      ensureSbClient().then(sb => { const p = profile || {}; sb.from("messages").insert({ room: onRoom, uid: myUid, nick: p.nick || "익명", avatar: p.avatar || "🙂", country: p.country || "", lang: myLangEl.value, text: JSON.stringify(obj) }); }).catch(() => {});
+    }
+    function omStartGame() {
+      document.getElementById("omOnlineSetup").style.display = "none";
+      board.style.display = ""; document.getElementById("oReset").style.display = "";
+      omStatus(""); newGame();
+      info.textContent = (onColor === 1) ? "🟢 연결됨! ⚫당신(흑) 선공" : "🟢 연결됨! ⚪당신(백) — 상대 선공";
+    }
+    function omMsg(m) {
+      if (!m || onSeen.has(m.id)) return; onSeen.add(m.id);
+      if (m.uid === myUid) return;
+      let d; try { d = JSON.parse(m.text); } catch (_) { return; }
+      if (d.t === "hello" || d.t === "ready") { if (!onReady) { onReady = true; omStartGame(); if (d.t === "hello") omSend({ t: "ready" }); } return; }
+      if (d.t === "move") { if (!over && grid[d.y] && !grid[d.y][d.x]) doPlace(d.x, d.y, d.c); return; }
+      if (d.t === "reset") { newGame(); info.textContent = (onColor === 1) ? "⚫당신(흑) 선공" : "⚪당신(백) — 상대 선공"; return; }
+    }
+    async function omJoin(code, color) {
+      const sb = await ensureSbClient().catch(() => null);
+      if (!sb) { omStatus("⚠️ 연결 실패 — 인터넷을 확인하세요."); return; }
+      onRoom = "omok_" + code; onColor = color; onSeen = new Set(); onReady = false;
+      omStatus(color === 1 ? "상대를 기다리는 중… 코드를 공유하세요." : "방에 연결 중…");
+      if (onChannel) { try { sb.removeChannel(onChannel); } catch (_) {} }
+      onChannel = sb.channel("omok-" + code + "-" + Date.now())
+        .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: "room=eq." + onRoom }, p => omMsg(p.new))
+        .subscribe(st => { if (st === "SUBSCRIBED") omSend({ t: "hello" }); });
+      onCleanup(() => { try { if (onChannel && sbClient) sbClient.removeChannel(onChannel); } catch (_) {} });
+    }
+    document.getElementById("omHost").onclick = () => {
+      const code = Math.random().toString(36).slice(2, 7).toUpperCase();
+      document.getElementById("omHostArea").style.display = "block"; document.getElementById("omJoinArea").style.display = "none";
+      document.getElementById("omCode").textContent = code; omJoin(code, 1);
+    };
+    document.getElementById("omJoinBtn").onclick = () => { document.getElementById("omJoinArea").style.display = "block"; document.getElementById("omHostArea").style.display = "none"; };
+    document.getElementById("omConnect").onclick = () => { const code = (document.getElementById("omCodeInput").value || "").trim().toUpperCase(); if (code.length < 3) { omStatus("코드를 입력하세요."); return; } omJoin(code, 2); };
+    document.getElementById("omCopy").onclick = async () => {
+      const code = document.getElementById("omCode").textContent;
+      const msg = "LINKO 오목 대결하자! 🎮\n게임 → ⚫오목 → 🌐친구 온라인 → 🔑코드 입력 → " + code + "\n" + location.origin + location.pathname;
+      try { if (navigator.share) await navigator.share({ text: msg }); else { await navigator.clipboard.writeText(msg); omStatus("코드·초대 메시지 복사됨!"); } } catch (_) {}
+    };
+
+    stage.querySelectorAll(".om-mode").forEach(b => b.onclick = () => {
+      mode = b.dataset.m; stage.querySelectorAll(".om-mode").forEach(m => m.classList.toggle("sel", m === b));
+      const setup = document.getElementById("omOnlineSetup");
+      if (mode === "online") {
+        setup.style.display = "block"; board.style.display = "none"; document.getElementById("oReset").style.display = "none";
+        document.getElementById("omHostArea").style.display = "none"; document.getElementById("omJoinArea").style.display = "none";
+        onRoom = null; onReady = false; omStatus(""); info.textContent = "🌐 방을 만들거나 코드로 참여하세요";
+      } else {
+        setup.style.display = "none"; board.style.display = ""; document.getElementById("oReset").style.display = "";
+        onRoom = null; onReady = false; newGame();
+      }
+    });
+    document.getElementById("oReset").onclick = () => { newGame(); if (mode === "online" && onRoom && onReady) { omSend({ t: "reset" }); info.textContent = (onColor === 1) ? "⚫당신(흑) 선공" : "⚪당신(백) — 상대 선공"; } };
     newGame();
   }
 })();
