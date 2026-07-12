@@ -533,6 +533,22 @@
         <span>➕ 친구 추가 · 초대</span>
         <button class="settings-x" id="addModalClose">✕</button>
       </div>
+      <div class="settings-label">📱 번호로 친구 추가 <span style="color:#059669;font-weight:800">— 제일 쉬워요!</span></div>
+      <div class="addfriend">
+        <input id="addPhone" class="cinput" type="tel" inputmode="tel" placeholder="친구 번호 (예: 8355 9371)" autocomplete="off" />
+        <button class="cbtn addfr" id="addPhoneBtn" style="background:linear-gradient(135deg,#10b981,#22c55e)">➕ 추가</button>
+      </div>
+      <div class="cnote" style="margin-bottom:12px">친구도 <b>⚙️ 설정 → 내 휴대폰 번호</b>를 한 번 저장하면 번호로 찾을 수 있어요.</div>
+
+      <div class="settings-label">🔑 코드로 추가</div>
+      <div class="addfriend">
+        <input id="friendCodeInput" class="cinput" placeholder="친구 코드 붙여넣기" autocomplete="off" />
+        <button class="cbtn addfr" id="addFriendBtn">➕ 추가</button>
+      </div>
+      <div class="cnote" id="friendStatus" style="min-height:18px;color:#059669;font-weight:700"></div>
+
+      <div class="set-divider"></div>
+      <div class="set-menu-title">내 정보 알려주기</div>
       <div class="mycode">
         <div class="mycode-label">🔑 내 친구 코드</div>
         <div class="mycode-row">
@@ -540,19 +556,13 @@
           <button class="mycode-copy" id="myCodeCopy">📋 복사</button>
         </div>
       </div>
-      <button class="cbtn invbtn" id="myCodeShare">📤 친구 코드 공유하기 (카톡·문자 등)</button>
-      <div class="settings-label">📱 휴대폰 번호로 초대</div>
+      <button class="cbtn invbtn" id="myCodeShare">📤 내 코드·링크 공유 (카톡·문자)</button>
+      <div class="settings-label">📩 앱 없는 친구 문자로 초대</div>
       <div class="invite-phone">
         <select id="phoneCC" class="chatlang"></select>
         <input id="invitePhone" class="cinput" type="tel" inputmode="tel" placeholder="번호 (앞 0 빼고)" autocomplete="off" />
-        <button class="cbtn invbtn2" id="invitePhoneBtn">📱 초대</button>
+        <button class="cbtn invbtn2" id="invitePhoneBtn">📩 초대</button>
       </div>
-      <div class="settings-label">🔑 코드로 친구 추가</div>
-      <div class="addfriend">
-        <input id="friendCodeInput" class="cinput" placeholder="친구 코드 입력" autocomplete="off" />
-        <button class="cbtn addfr" id="addFriendBtn">➕ 추가</button>
-      </div>
-      <div class="cnote" id="friendStatus"></div>
     </div>
   </div>
 
@@ -572,6 +582,8 @@
       </div>
       <div class="settings-label" data-i18n="set_nick">닉네임</div>
       <input class="settings-input" id="profNick" data-i18n-ph="set_nick_ph" placeholder="이름을 입력하세요" maxlength="20" autocomplete="off" />
+      <div class="settings-label">📱 내 휴대폰 번호 <span style="color:var(--muted);font-weight:500">(친구가 번호로 찾을 수 있어요)</span></div>
+      <input class="settings-input" id="profPhone" type="tel" inputmode="tel" placeholder="예: 8355 9371" maxlength="20" autocomplete="off" />
       <div class="settings-label"><span data-i18n="set_country">국가</span> <span style="color:#ef4444">*필수</span></div>
       <select class="settings-input" id="profCountry"></select>
       <div class="settings-label" data-i18n="set_birthday">생일</div>
@@ -1961,6 +1973,7 @@ function openSettings() {
   tmpAvatar = profile.avatar || "🌐";
   tmpPhoto = profile.photo || null;
   profNick.value = profile.nick || "";
+  { const pp = document.getElementById("profPhone"); if (pp) pp.value = profile.phone || ""; }
   profCountry.value = profile.country || "";
   profBirthday.value = profile.birthday || "";
   const se = document.getElementById("setErr"); se.textContent = ""; se.style.color = "";
@@ -1972,7 +1985,8 @@ function openSettings() {
 }
 function saveProfile() {
   if (!profCountry.value) { document.getElementById("setErr").textContent = "국가를 선택해주세요 (필수)"; profCountry.focus(); return; }
-  profile = { avatar: tmpAvatar, photo: tmpPhoto, nick: profNick.value.trim(), country: profCountry.value, birthday: profBirthday.value };
+  const phoneVal = (document.getElementById("profPhone") || {}).value || "";
+  profile = { avatar: tmpAvatar, photo: tmpPhoto, nick: profNick.value.trim(), country: profCountry.value, birthday: profBirthday.value, phone: phoneVal.trim() };
   try { localStorage.setItem("profile", JSON.stringify(profile)); } catch (_) {}
   applyProfileToHeader();
   if (typeof renderProfCard === "function") renderProfCard();
@@ -2153,13 +2167,36 @@ document.getElementById("photoInput").onchange = async (e) => {
    👥 친구 (Supabase profiles/friends)
 ========================================================= */
 function setFriendStatus(m) { const el = document.getElementById("friendStatus"); if (el) el.textContent = m || ""; }
+function normalizePhone(raw) { return (raw || "").replace(/\D/g, "").replace(/^0+/, ""); }
 async function syncProfile() {
   try {
     const sb = await ensureSbClient();
     const p = profile || {};
-    if (!p.nick && !p.country) return;
     await sb.from("profiles").upsert({ uid: myUid, nick: p.nick || "", avatar: p.avatar || "🙂", photo: p.photo || "", country: p.country || "", lang: myLangEl.value });
+    // 📱 번호로 찾기: 폰북(messages 재사용)에 내 번호 등록 (바뀔 때만)
+    const ph = normalizePhone(p.phone || "");
+    if (ph.length >= 6) {
+      let last = ""; try { last = localStorage.getItem("pbSynced") || ""; } catch (_) {}
+      if (last !== ph) {
+        await sb.from("messages").insert({ room: "__phonebook", uid: myUid, nick: p.nick || "", avatar: p.avatar || "🙂", country: p.country || "", lang: myLangEl.value, text: ph });
+        try { localStorage.setItem("pbSynced", ph); } catch (_) {}
+      }
+    }
   } catch (_) {}
+}
+async function addFriendByPhone(raw) {
+  const last8 = normalizePhone(raw).slice(-8);
+  if (last8.length < 6) { setFriendStatus("번호를 정확히 입력하세요."); return; }
+  setFriendStatus("📱 번호로 찾는 중…");
+  try {
+    const sb = await ensureSbClient();
+    const res = await sb.from("messages").select("uid").eq("room", "__phonebook").ilike("text", "%" + last8).order("id", { ascending: false }).limit(1);
+    const uid = res.data && res.data[0] && res.data[0].uid;
+    if (!uid) { setFriendStatus("그 번호의 친구를 못 찾았어요. 친구가 ⚙️설정에서 번호를 저장했는지 확인해 주세요."); return; }
+    if (uid === myUid) { setFriendStatus("본인 번호예요 😊"); return; }
+    await addFriend(uid);
+    const ap = document.getElementById("addPhone"); if (ap) ap.value = "";
+  } catch (e) { setFriendStatus("오류: " + (e.message || e)); }
 }
 async function addFriend(code) {
   code = (code || "").trim();
@@ -2170,13 +2207,13 @@ async function addFriend(code) {
     const sb = await ensureSbClient();
     const res = await sb.from("profiles").select("uid,nick").eq("uid", code).maybeSingle();
     if (!res.data) { setFriendStatus("그 코드의 사용자를 찾을 수 없어요. (상대가 프로필을 저장했는지 확인)"); return; }
+    // 양방향 친구: 나→상대, 상대→나 둘 다 넣어 서로 바로 친구가 됨
     const ins = await sb.from("friends").insert({ uid: myUid, friend_uid: code });
-    if (ins.error) {
-      if (ins.error.code === "23505" || /duplicate|already exists/i.test(ins.error.message || "")) { setFriendStatus("이미 친구예요! 😊"); loadFriends(); document.getElementById("friendCodeInput").value = ""; return; }
-      setFriendStatus("추가 실패: " + ins.error.message); return;
-    }
-    setFriendStatus((res.data.nick || "친구") + " 님을 추가했어요! 🎉");
-    document.getElementById("friendCodeInput").value = "";
+    await sb.from("friends").insert({ uid: code, friend_uid: myUid }).then(() => {}, () => {});
+    const dup = ins.error && (ins.error.code === "23505" || /duplicate|already exists/i.test(ins.error.message || ""));
+    if (ins.error && !dup) { setFriendStatus("추가 실패: " + ins.error.message); return; }
+    setFriendStatus(dup ? "이미 친구예요! 😊" : ((res.data.nick || "친구") + " 님과 친구가 됐어요! 🎉"));
+    const fc = document.getElementById("friendCodeInput"); if (fc) fc.value = "";
     loadFriends();
   } catch (e) { setFriendStatus("오류: " + (e.message || e)); }
 }
@@ -2213,6 +2250,10 @@ const COUNTRY_CODES = [["+82","🇰🇷"],["+65","🇸🇬"],["+95","🇲🇲"],
   if (cp) cp.onclick = () => { try { navigator.clipboard.writeText(myUid); setFriendStatus("코드를 복사했어요!"); } catch (_) {} };
   const ab = document.getElementById("addFriendBtn");
   if (ab) ab.onclick = () => addFriend(document.getElementById("friendCodeInput").value);
+  const apb = document.getElementById("addPhoneBtn");
+  if (apb) apb.onclick = () => addFriendByPhone(document.getElementById("addPhone").value);
+  const apIn = document.getElementById("addPhone");
+  if (apIn) apIn.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); addFriendByPhone(apIn.value); } });
   const sh = document.getElementById("myCodeShare");
   if (sh) sh.onclick = async () => {
     if (navigator.share) { try { await navigator.share({ title: "LINKO 친구 초대", text: inviteMsg() }); } catch (_) {} }
