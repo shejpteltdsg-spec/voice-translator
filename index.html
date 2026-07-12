@@ -2232,7 +2232,7 @@ async function loadFriends() {
   } catch (e) { listEl.innerHTML = '<div class="friend-empty">친구 목록 로드 실패 — 인터넷을 확인하세요.</div>'; }
 }
 function inviteUrl() { return location.origin + location.pathname + "?add=" + encodeURIComponent(myUid); }
-function inviteMsg() { return "LINKO 번역 메신저에서 친구해요! 🌍\n제 친구코드를 추가하거나 아래 링크를 열어주세요.\n\n코드: " + myUid + "\n" + inviteUrl(); }
+function inviteMsg() { return "🌍 LINKO 번역 메신저 초대!\n언어가 달라도 자동으로 번역돼요 (무료).\n👇 앱 열기\nhttps://tinyurl.com/linkoapp"; }
 const COUNTRY_CODES = [["+82","🇰🇷"],["+65","🇸🇬"],["+95","🇲🇲"],["+1","🇺🇸"],["+86","🇨🇳"],["+81","🇯🇵"],["+84","🇻🇳"],["+66","🇹🇭"],["+63","🇵🇭"],["+62","🇮🇩"],["+60","🇲🇾"],["+91","🇮🇳"],["+880","🇧🇩"],["+92","🇵🇰"],["+977","🇳🇵"],["+855","🇰🇭"],["+856","🇱🇦"],["+44","🇬🇧"],["+33","🇫🇷"],["+49","🇩🇪"],["+34","🇪🇸"],["+39","🇮🇹"],["+7","🇷🇺"],["+971","🇦🇪"],["+61","🇦🇺"]];
 (function initFriends() {
   const pc2 = document.getElementById("phoneCC");
@@ -2256,7 +2256,12 @@ const COUNTRY_CODES = [["+82","🇰🇷"],["+65","🇸🇬"],["+95","🇲🇲"],
     const cc = (document.getElementById("phoneCC").value) || "+82";
     const num = (document.getElementById("invitePhone").value || "").replace(/[^0-9]/g, "").replace(/^0+/, "");
     if (!num) { setFriendStatus("친구 휴대폰 번호를 입력하세요."); return; }
-    window.location.href = "sms:" + cc + num + "?&body=" + encodeURIComponent(inviteMsg());
+    const body = encodeURIComponent(inviteMsg());
+    const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent || "");
+    // 아이폰은 &body=, 안드로이드는 ?body= (형식이 달라서 링크가 안 붙던 문제 수정)
+    try { navigator.clipboard.writeText(inviteMsg()); } catch (_) {}   // 혹시 본문이 안 붙어도 붙여넣기 가능
+    setFriendStatus("문자앱이 열려요. 링크가 안 보이면 붙여넣기(복사됨) 하세요.");
+    window.location.href = "sms:" + cc + num + (isIOS ? "&" : "?") + "body=" + body;
   };
   const am = document.getElementById("addModal");
   function renderMyPhone() {
