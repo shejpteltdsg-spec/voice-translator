@@ -514,15 +514,13 @@
       <button class="settings-x" id="gamesClose">✕</button>
     </div>
     <div class="gamehub" id="gameHub">
-      <button class="gamecard" data-game="sudoku"><span class="gc-emoji">🧩</span><span class="gc-name">스도쿠</span></button>
-      <button class="gamecard" data-game="bingo"><span class="gc-emoji">🎱</span><span class="gc-name">빙고 (컴퓨터 대결)</span></button>
+      <button class="gamecard" data-game="wordchain"><span class="gc-emoji">🔤</span><span class="gc-name">끝말잇기 (AI·친구)</span></button>
+      <button class="gamecard" data-game="onecard"><span class="gc-emoji">🎴</span><span class="gc-name">원카드 (AI·친구)</span></button>
+      <button class="gamecard" data-game="omok"><span class="gc-emoji">⚫</span><span class="gc-name">오목 (AI·친구)</span></button>
+      <button class="gamecard" data-game="brick"><span class="gc-emoji">🧱</span><span class="gc-name">벽돌쌓기</span></button>
       <button class="gamecard" data-game="g2048"><span class="gc-emoji">🔢</span><span class="gc-name">2048 (숫자 합치기)</span><span class="gc-best" id="best-2048"></span></button>
       <button class="gamecard" data-game="memory"><span class="gc-emoji">🃏</span><span class="gc-name">기억력 카드 짝맞추기</span><span class="gc-best" id="best-memory"></span></button>
-      <button class="gamecard" data-game="omok"><span class="gc-emoji">⚫</span><span class="gc-name">오목 (AI·둘이서)</span></button>
-      <button class="gamecard" data-game="tictac"><span class="gc-emoji">❌</span><span class="gc-name">틱택토 (AI 대결)</span></button>
-      <button class="gamecard" data-game="mines"><span class="gc-emoji">💣</span><span class="gc-name">지뢰찾기</span></button>
-      <button class="gamecard" data-game="slide"><span class="gc-emoji">🔢</span><span class="gc-name">15 슬라이드 퍼즐</span></button>
-      <button class="gamecard" data-game="simon"><span class="gc-emoji">🎨</span><span class="gc-name">사이먼 (색깔 기억)</span></button>
+      <button class="gamecard" data-game="sudoku"><span class="gc-emoji">🧩</span><span class="gc-name">스도쿠</span></button>
       <button class="gamecard" data-game="schulte"><span class="gc-emoji">⚡</span><span class="gc-name">숫자 순서 (집중력)</span></button>
       <button class="gamecard" data-game="leaderboard" style="grid-column:1/-1;background:linear-gradient(135deg,#fef3c7,#fde68a)"><span class="gc-emoji">🏆</span><span class="gc-name">친구 순위 (온라인 랭킹)</span></button>
     </div>
@@ -2654,7 +2652,7 @@ function notify(title, body) {
   /* ===== 🏆 친구 순위 (온라인 랭킹) — messages 테이블 재사용, 새 백엔드 불필요 ===== */
   const LB_META = {
     "2048": { title: "🔢 2048", lower: false, unit: "점" },
-    "simon": { title: "🎨 사이먼", lower: false, unit: "단계" },
+    "brick": { title: "🧱 벽돌쌓기", lower: false, unit: "점" },
     "memory": { title: "🃏 기억력", lower: true, unit: "번" },
     "schulte": { title: "⚡ 숫자순서", lower: true, unit: "초" }
   };
@@ -2694,7 +2692,7 @@ function notify(title, body) {
   }
   async function buildLeaderboard() {
     lbSyncLocal("2048", getBest("2048"));
-    lbSyncLocal("simon", getBest("simon"));
+    lbSyncLocal("brick", getBest("brick"));
     try { lbSyncLocal("memory", parseInt(localStorage.getItem("gbest_memory_moves")) || 0); } catch (_) {}
     try { lbSyncLocal("schulte", parseFloat(localStorage.getItem("gbest_schulte")) || 0); } catch (_) {}
     stage.innerHTML =
@@ -2737,14 +2735,12 @@ function notify(title, body) {
     stopRaf(); stage.innerHTML = ""; hub.style.display = "none";
     stage.classList.add("on"); back.style.display = "block";
     if (name === "sudoku") { title.textContent = "🧩 스도쿠"; buildSudoku(); }
-    else if (name === "bingo") { title.textContent = "🎱 빙고"; buildBingo(); }
+    else if (name === "wordchain") { title.textContent = "🔤 끝말잇기"; buildWordChain(); }
+    else if (name === "onecard") { title.textContent = "🎴 원카드"; buildOneCard(); }
+    else if (name === "brick") { title.textContent = "🧱 벽돌쌓기"; buildBrick(); }
     else if (name === "g2048") { title.textContent = "🔢 2048"; buildG2048(); }
     else if (name === "memory") { title.textContent = "🃏 기억력 카드"; buildMemory(); }
     else if (name === "omok") { title.textContent = "⚫ 오목"; buildOmok(); }
-    else if (name === "tictac") { title.textContent = "❌ 틱택토"; buildTicTac(); }
-    else if (name === "mines") { title.textContent = "💣 지뢰찾기"; buildMines(); }
-    else if (name === "slide") { title.textContent = "🔢 15 퍼즐"; buildSlide(); }
-    else if (name === "simon") { title.textContent = "🎨 사이먼"; buildSimon(); }
     else if (name === "schulte") { title.textContent = "⚡ 숫자 순서"; buildSchulte(); }
     else if (name === "leaderboard") { title.textContent = "🏆 친구 순위"; buildLeaderboard(); }
   }
@@ -2962,6 +2958,258 @@ function notify(title, body) {
     function next() { seq.push(Math.random() * 4 | 0); msgEl.textContent = "잘 보세요…"; setTimeout(() => { if (live) playSeq(); }, 500); }
     btns.forEach(b => b.onclick = () => { if (!accepting) return; const i = +b.dataset.i; b.classList.add("si-on"); setTimeout(() => b.classList.remove("si-on"), 150); if (i === seq[pos]) { pos++; if (pos === seq.length) { accepting = false; setBest("simon", seq.length); bestEl.textContent = "🏆 " + getBest("simon"); msgEl.textContent = "✅ " + seq.length + "단계 성공!"; setTimeout(() => { if (live) next(); }, 700); } } else { accepting = false; msgEl.textContent = "❌ 틀렸어요! " + (seq.length - 1) + "단계 기록"; } });
     document.getElementById("siStart").onclick = () => { seq = []; next(); };
+  }
+
+  /* ===== 🌐 온라인 대결 공용 전송(Supabase messages 재사용) ===== */
+  function makeNet(prefix) {
+    let room = null, channel = null, seen = null, ready = false, myColor = 0;
+    function send(obj) {
+      if (!room) return;
+      ensureSbClient().then(sb => { const p = profile || {}; sb.from("messages").insert({ room, uid: myUid, nick: p.nick || "익명", avatar: p.avatar || "🙂", country: p.country || "", lang: myLangEl.value, text: JSON.stringify(obj) }); }).catch(() => {});
+    }
+    async function join(code, color, onStart, onData) {
+      const sb = await ensureSbClient().catch(() => null); if (!sb) return false;
+      room = prefix + "_" + code; myColor = color; seen = new Set(); ready = false;
+      if (channel) { try { sb.removeChannel(channel); } catch (_) {} }
+      channel = sb.channel(prefix + "-" + code + "-" + Date.now())
+        .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: "room=eq." + room }, p => {
+          const m = p.new; if (!m || seen.has(m.id)) return; seen.add(m.id); if (m.uid === myUid) return;
+          let d; try { d = JSON.parse(m.text); } catch (_) { return; }
+          if (d.t === "hello" || d.t === "ready") { if (!ready) { ready = true; onStart && onStart(m.nick); if (d.t === "hello") send({ t: "ready" }); } return; }
+          onData && onData(d, m);
+        })
+        .subscribe(st => { if (st === "SUBSCRIBED") send({ t: "hello" }); });
+      onCleanup(() => { try { if (channel && sbClient) sbClient.removeChannel(channel); } catch (_) {} });
+      return true;
+    }
+    return { join, send, isReady: () => ready, color: () => myColor, online: () => !!room };
+  }
+  function onlineSetupHTML(idp) {
+    return '<div id="' + idp + 'Setup" style="padding:6px 14px;display:none">' +
+      '<div class="callrow"><button class="cbtn host" id="' + idp + 'Host">🆕 방 만들기</button><button class="cbtn join" id="' + idp + 'JoinBtn">🔑 코드 입력</button></div>' +
+      '<div id="' + idp + 'HostArea" style="display:none"><div class="ccode" id="' + idp + 'Code">…</div><button class="ccopy" id="' + idp + 'Copy">📋 코드 공유</button><div class="cnote">상대가 이 코드로 들어오면 시작돼요.</div></div>' +
+      '<div id="' + idp + 'JoinArea" style="display:none"><input id="' + idp + 'CodeInput" class="cinput" placeholder="코드 입력" maxlength="5" style="text-transform:uppercase" autocomplete="off"><button class="cbtn" id="' + idp + 'Connect" style="width:100%;margin-top:8px">연결하기</button></div>' +
+      '<div class="cnote" id="' + idp + 'Status"></div></div>';
+  }
+  function wireOnlineSetup(idp, net, onStart, onData) {
+    const g = id => document.getElementById(idp + id);
+    g("Host").onclick = () => { const code = Math.random().toString(36).slice(2, 7).toUpperCase(); g("HostArea").style.display = "block"; g("JoinArea").style.display = "none"; g("Code").textContent = code; g("Status").textContent = "상대를 기다리는 중… 코드를 공유하세요."; net.join(code, 1, onStart, onData); };
+    g("JoinBtn").onclick = () => { g("JoinArea").style.display = "block"; g("HostArea").style.display = "none"; };
+    g("Connect").onclick = () => { const code = (g("CodeInput").value || "").trim().toUpperCase(); if (code.length < 3) { g("Status").textContent = "코드를 입력하세요."; return; } g("Status").textContent = "연결 중…"; net.join(code, 2, onStart, onData); };
+    g("Copy").onclick = async () => { const code = g("Code").textContent; const msg = "LINKO 게임 대결하자! 🎮 코드: " + code + "\n" + location.origin + location.pathname; try { if (navigator.share) await navigator.share({ text: msg }); else { await navigator.clipboard.writeText(msg); g("Status").textContent = "코드 복사됨!"; } } catch (_) {} };
+  }
+
+  /* ===== 🔤 끝말잇기 (한/영/중, AI + 친구 온라인) ===== */
+  const WC = {
+    ko: { name: "한국어", start: ["사과", "바다", "나무", "하늘", "가방", "도로", "마음", "구름"], words: ["사과", "과일", "일기", "기차", "차표", "표범", "범인", "인사", "사자", "자유", "유리", "리본", "본체", "체육", "육지", "지구", "구두", "두부", "부자", "자석", "석유", "유행", "행복", "복권", "권투", "투수", "수건", "건물", "물고기", "기린", "린스", "스키", "키위", "위성", "성공", "공기", "기분", "분수", "수박", "박수", "박쥐", "쥐포", "포도", "도시", "시간", "간장", "장미", "미역", "역사", "사진", "진주", "주사", "사탕", "탕수육", "육수", "수영", "영화", "화가", "가수", "수도", "도로", "로봇", "봇짐", "바나나", "나비", "비누", "누나", "마차", "차이", "이불", "불빛", "빛깔", "깔개", "하마", "마늘", "늘봄", "봄비", "비행기", "기타", "타조", "조개", "개미", "미소", "소금", "금붕어"] },
+    en: { name: "English", start: ["apple", "tree", "game", "house", "water", "star"], words: ["apple", "egg", "goat", "tiger", "rabbit", "train", "nose", "east", "tea", "ant", "turtle", "edge", "engine", "ear", "radio", "open", "note", "exit", "table", "echo", "orange", "new", "water", "rain", "night", "top", "panda", "angel", "lion", "nap", "pen", "nest", "time", "exam", "mango", "ocean", "nurse", "earth", "house", "energy", "yellow", "window", "world", "dream", "moon", "tent", "toast", "star", "robot", "tomato", "owl", "lemon", "nut", "teacher", "river", "road", "desk", "kite", "eagle", "eye", "grape", "elephant", "milk", "king", "green", "name", "money", "yard", "duck", "kid"] },
+    zh: { name: "中文", start: ["苹果", "天空", "水果", "大门", "花朵"], words: ["苹果", "果汁", "水果", "果树", "树木", "木头", "头发", "发现", "现在", "在家", "家人", "人口", "口红", "红花", "花朵", "天空", "空气", "气球", "球门", "门口", "水手", "手机", "机场", "场地", "地图", "图书", "书本", "本子", "子女", "女人", "人生", "生活", "活动", "动物", "物品", "大门", "门票", "票房", "房间", "间接", "花园", "园丁", "香水", "月亮", "亮光", "光明", "明天", "天气", "水平", "平安", "安全", "全部"] }
+  };
+  function buildWordChain() {
+    const net = makeNet("wc");
+    let lang = "ko", mode = "ai", used = new Set(), cur = "", myTurn = false, over = true, tmr = null, tleft = 0;
+    const norm = w => w.trim().toLowerCase();
+    const firstCh = w => lang === "en" ? w[0].toLowerCase() : w[0];
+    const lastCh = w => lang === "en" ? w[w.length - 1].toLowerCase() : w[w.length - 1];
+    const list = () => [...new Set(WC[lang].words)];
+    stage.innerHTML =
+      '<div class="omok-mode"><button class="om-mode sel" data-m="ai">🤖 AI 대결</button><button class="om-mode" data-m="online">🌐 친구 온라인</button></div>' +
+      '<div class="omok-mode" id="wcLangs"><button class="om-mode sel" data-l="ko">한국어</button><button class="om-mode" data-l="en">English</button><button class="om-mode" data-l="zh">中文</button></div>' +
+      onlineSetupHTML("wc") +
+      '<div id="wcGame" style="padding:4px 14px">' +
+        '<div class="clive" id="wcInfo" style="text-align:center">🤖 AI와 끝말잇기! 아래 시작을 누르세요</div>' +
+        '<div id="wcLog" style="max-height:34vh;overflow-y:auto;margin:8px 0;background:rgba(255,255,255,.06);border-radius:10px;padding:6px 10px"></div>' +
+        '<div style="display:flex;gap:8px"><input id="wcInput" class="cinput" placeholder="단어 입력" autocomplete="off" style="flex:1;margin:0"><button class="cbtn" id="wcSend" style="width:auto;padding:12px 16px">보내기</button></div>' +
+        '<button class="cbtn" id="wcStart" style="width:100%;margin-top:8px;background:var(--grad)">▶ 시작 / 새 게임</button>' +
+        '<div class="cnote" id="wcMsg"></div>' +
+      '</div>';
+    const g = id => document.getElementById(id);
+    onCleanup(() => { if (tmr) clearInterval(tmr); });
+    function addLog(who, word, bad) { const d = document.createElement("div"); d.style.cssText = "padding:4px 0;font-size:14px;color:#fff"; d.innerHTML = "<b>" + who + ":</b> " + escapeHtml(word) + (bad ? " ❌" : ""); g("wcLog").appendChild(d); g("wcLog").scrollTop = 1e9; }
+    const setInfo = t => g("wcInfo").textContent = t;
+    const setMsg = t => g("wcMsg").textContent = t || "";
+    function stopTimer() { if (tmr) { clearInterval(tmr); tmr = null; } }
+    function startTimer() { stopTimer(); tleft = 25; tmr = setInterval(() => { if (over) { stopTimer(); return; } if (myTurn) { tleft--; setMsg("⏱️ " + tleft + "초"); if (tleft <= 0) { stopTimer(); lose("시간 초과!"); } } }, 1000); }
+    function lose(r) { over = true; stopTimer(); setInfo("😢 졌어요! " + r); if (mode === "online" && net.online()) net.send({ t: "lose" }); }
+    function win(r) { over = true; stopTimer(); setInfo("🎉 이겼어요! " + r); }
+    function startAI() {
+      used = new Set(); over = false; g("wcLog").innerHTML = ""; setMsg("");
+      const s = WC[lang].start[Math.floor(Math.random() * WC[lang].start.length)];
+      used.add(norm(s)); cur = s; addLog("시작어", s); myTurn = true; setInfo("당신 차례! '" + lastCh(cur) + "'(으)로 시작하는 단어"); startTimer();
+    }
+    function submit() {
+      if (over || !myTurn) return;
+      const w = g("wcInput").value.trim();
+      if (w.length < 2) { setMsg("2글자 이상 입력하세요"); return; }
+      if (firstCh(w) !== lastCh(cur)) { setMsg("'" + lastCh(cur) + "'(으)로 시작해야 해요"); addLog("나", w, true); return; }
+      if (used.has(norm(w))) { setMsg("이미 나온 단어예요"); addLog("나", w, true); return; }
+      g("wcInput").value = ""; used.add(norm(w)); cur = w; addLog("나", w); myTurn = false; setMsg(""); stopTimer();
+      if (mode === "ai") { setInfo("🤖 AI 생각 중…"); setTimeout(aiTurn, 700); }
+      else if (net.online()) { net.send({ t: "word", word: w }); setInfo("⏳ 상대 차례…"); }
+    }
+    function aiTurn() {
+      if (over) return;
+      const req = lastCh(cur);
+      const cand = list().filter(w => firstCh(w) === req && !used.has(norm(w)));
+      if (!cand.length) { win("AI가 이을 단어가 없어요!"); return; }
+      const w = cand[Math.floor(Math.random() * cand.length)];
+      used.add(norm(w)); cur = w; addLog("🤖 AI", w); myTurn = true; setInfo("당신 차례! '" + lastCh(cur) + "'(으)로 시작"); startTimer();
+    }
+    function onData(d) {
+      if (d.t === "start") { lang = d.lang; used = new Set([norm(d.word)]); cur = d.word; over = false; g("wcLog").innerHTML = ""; addLog("시작어", d.word); myTurn = false; setInfo("⏳ 상대(방장) 차례…"); return; }
+      if (d.t === "word") { used.add(norm(d.word)); cur = d.word; addLog("상대", d.word); myTurn = true; setInfo("당신 차례! '" + lastCh(cur) + "'(으)로 시작"); startTimer(); return; }
+      if (d.t === "lose") { win("상대가 졌어요!"); return; }
+    }
+    function onStart() {
+      g("wcSetup").style.display = "none"; g("wcGame").style.display = "block";
+      if (net.color() === 1) { const s = WC[lang].start[Math.floor(Math.random() * WC[lang].start.length)]; used = new Set([norm(s)]); cur = s; over = false; g("wcLog").innerHTML = ""; addLog("시작어", s); myTurn = true; setInfo("🟢 연결됨! 당신 차례!"); startTimer(); net.send({ t: "start", word: s, lang }); }
+      else setInfo("🟢 연결됨! 상대(방장)가 먼저 시작해요…");
+    }
+    stage.querySelectorAll("[data-m]").forEach(b => b.onclick = () => {
+      mode = b.dataset.m; stage.querySelectorAll("[data-m]").forEach(x => x.classList.toggle("sel", x === b)); stopTimer(); over = true;
+      if (mode === "online") { g("wcSetup").style.display = "block"; g("wcGame").style.display = "none"; }
+      else { g("wcSetup").style.display = "none"; g("wcGame").style.display = "block"; setInfo("🤖 AI와 끝말잇기! 아래 시작을 누르세요"); g("wcLog").innerHTML = ""; }
+    });
+    g("wcLangs").querySelectorAll("[data-l]").forEach(b => b.onclick = () => { lang = b.dataset.l; g("wcLangs").querySelectorAll("[data-l]").forEach(x => x.classList.toggle("sel", x === b)); });
+    g("wcStart").onclick = () => { if (mode === "ai") startAI(); };
+    g("wcSend").onclick = submit;
+    g("wcInput").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); submit(); } });
+    wireOnlineSetup("wc", net, onStart, onData);
+  }
+
+  /* ===== 🎴 원카드 (우노식, AI + 친구 온라인) ===== */
+  function buildOneCard() {
+    const net = makeNet("oc");
+    const COLORS = ["R", "Y", "G", "B"], HEX = { R: "#ef4444", Y: "#eab308", G: "#22c55e", B: "#3b82f6" };
+    let mode = "ai", S = null, me = 1, over = true;
+    stage.innerHTML =
+      '<div class="omok-mode"><button class="om-mode sel" data-m="ai">🤖 AI 대결</button><button class="om-mode" data-m="online">🌐 친구 온라인</button></div>' +
+      onlineSetupHTML("oc") +
+      '<div id="ocGame" style="padding:6px 14px">' +
+        '<div class="clive" id="ocInfo" style="text-align:center">🤖 AI와 원카드! 아래 시작을 누르세요</div>' +
+        '<div id="ocOpp" style="text-align:center;margin:8px 0;color:#fff"></div>' +
+        '<div id="ocTop" style="display:flex;justify-content:center;gap:10px;align-items:center;margin:10px 0"></div>' +
+        '<div id="ocHand" style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:10px 0;min-height:48px"></div>' +
+        '<div style="display:flex;gap:8px"><button class="cbtn" id="ocDraw" style="flex:1">🃏 카드 뽑기</button><button class="cbtn" id="ocStart" style="flex:1;background:var(--grad)">▶ 시작 / 새 게임</button></div>' +
+        '<div class="cnote" id="ocMsg"></div>' +
+      '</div>';
+    const g = id => document.getElementById(id);
+    const mkc = (c, v) => ({ c, v });
+    const label = v => v === "S" ? "⤴" : v === "D" ? "+2" : ("" + v);
+    const cardStyle = (cd, hl) => "min-width:34px;height:48px;border-radius:8px;border:" + (hl ? "3px solid #fde68a" : "2px solid rgba(255,255,255,.35)") + ";background:" + HEX[cd.c] + ";color:#fff;font-weight:800;font-size:17px;cursor:pointer;padding:0 6px";
+    const cardHTML = cd => "<div style='" + cardStyle(cd, false) + ";display:inline-flex;align-items:center;justify-content:center'>" + label(cd.v) + "</div>";
+    const playable = cd => cd.c === S.color || cd.v === S.discard.v;
+    function newDeck() { const d = []; for (const c of COLORS) { for (let n = 0; n <= 9; n++) { d.push(mkc(c, n)); if (n > 0) d.push(mkc(c, n)); } d.push(mkc(c, "S"), mkc(c, "S"), mkc(c, "D"), mkc(c, "D")); } for (let i = d.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; const t = d[i]; d[i] = d[j]; d[j] = t; } return d; }
+    function deal() { const pile = newDeck(); const hands = { 1: [], 2: [] }; for (let i = 0; i < 7; i++) { hands[1].push(pile.pop()); hands[2].push(pile.pop()); } let top = pile.pop(); while (typeof top.v !== "number") { pile.unshift(top); top = pile.pop(); } S = { hands, pile, discard: top, color: top.c, turn: 1, winner: 0 }; over = false; }
+    function drawFor(p, n) { for (let i = 0; i < n; i++) { if (!S.pile.length) S.pile = newDeck(); S.hands[p].push(S.pile.pop()); } }
+    function applyPlay(p, idx) {
+      if (S.winner || S.turn !== p) return false;
+      const cd = S.hands[p][idx]; if (!cd || !playable(cd)) return false;
+      S.hands[p].splice(idx, 1); S.discard = cd; S.color = cd.c;
+      if (!S.hands[p].length) { S.winner = p; return true; }
+      if (cd.v === "S") { /* 상대 스킵: 같은 사람 한 번 더 */ }
+      else if (cd.v === "D") { drawFor(p === 1 ? 2 : 1, 2); }
+      else { S.turn = p === 1 ? 2 : 1; }
+      return true;
+    }
+    function applyDraw(p) { if (S.winner || S.turn !== p) return false; drawFor(p, 1); S.turn = p === 1 ? 2 : 1; return true; }
+    function broadcast() { if (net.online() && me === 1) net.send({ t: "state", s: { hands: S.hands, discard: S.discard, color: S.color, turn: S.turn, winner: S.winner } }); }
+    function render() {
+      g("ocSetup").style.display = "none"; g("ocGame").style.display = "block";
+      if (!S) { g("ocOpp").innerHTML = ""; g("ocTop").innerHTML = ""; g("ocHand").innerHTML = ""; return; }
+      const opp = me === 1 ? 2 : 1;
+      g("ocOpp").innerHTML = "🙂 상대 카드 <b>" + S.hands[opp].length + "</b>장";
+      g("ocTop").innerHTML = "<span style='font-size:13px;color:#fff'>바닥</span>" + cardHTML(S.discard) + "<span style='font-size:13px;color:#fff'>색</span><span style='width:22px;height:22px;border-radius:50%;display:inline-block;background:" + HEX[S.color] + "'></span>";
+      const hand = S.hands[me];
+      g("ocHand").innerHTML = hand.map((cd, i) => "<button class='occard' data-i='" + i + "' style='" + cardStyle(cd, S.turn === me && !S.winner && playable(cd)) + "'>" + label(cd.v) + "</button>").join("");
+      g("ocHand").querySelectorAll(".occard").forEach(b => b.onclick = () => playMove(+b.dataset.i));
+      if (S.winner) { g("ocInfo").textContent = S.winner === me ? "🎉 이겼어요!" : "😢 졌어요! 다시 도전"; over = true; g("ocMsg").textContent = ""; }
+      else { g("ocInfo").textContent = S.turn === me ? "🟢 당신 차례" : "⏳ 상대 차례…"; g("ocMsg").textContent = (S.turn === me && !hand.some(playable)) ? "낼 카드가 없어요 → 🃏 카드 뽑기" : ""; }
+    }
+    function aiLoop() {
+      if (over || !S || S.winner || S.turn !== 2) { render(); return; }
+      const hand = S.hands[2]; let idx = hand.findIndex(cd => (cd.v === "S" || cd.v === "D") && playable(cd));
+      if (idx < 0) idx = hand.findIndex(playable);
+      if (idx >= 0) applyPlay(2, idx); else applyDraw(2);
+      render();
+      if (!S.winner && S.turn === 2) setTimeout(aiLoop, 650);
+    }
+    function playMove(i) {
+      if (over || !S || S.turn !== me) return;
+      const cd = S.hands[me][i]; if (!cd || !playable(cd)) { g("ocMsg").textContent = "낼 수 없는 카드예요"; return; }
+      if (mode === "ai") { applyPlay(me, i); render(); if (!S.winner && S.turn === 2) setTimeout(aiLoop, 500); }
+      else if (net.online()) { if (me === 1) { applyPlay(1, i); render(); broadcast(); } else net.send({ t: "play", idx: i }); }
+    }
+    function drawMove() {
+      if (over || !S || S.turn !== me) return;
+      if (mode === "ai") { applyDraw(me); render(); if (!S.winner && S.turn === 2) setTimeout(aiLoop, 500); }
+      else if (net.online()) { if (me === 1) { applyDraw(1); render(); broadcast(); } else net.send({ t: "draw" }); }
+    }
+    function startAI() { me = 1; deal(); render(); if (S.turn === 2) setTimeout(aiLoop, 500); }
+    function onData(d) {
+      if (d.t === "state") { S = { hands: d.s.hands, pile: [], discard: d.s.discard, color: d.s.color, turn: d.s.turn, winner: d.s.winner }; over = !!S.winner; render(); return; }
+      if (mode === "online" && me === 1) {
+        if (d.t === "play") { applyPlay(2, d.idx); render(); broadcast(); }
+        else if (d.t === "draw") { applyDraw(2); render(); broadcast(); }
+      }
+    }
+    function onStart() {
+      g("ocSetup").style.display = "none"; g("ocGame").style.display = "block";
+      me = net.color();
+      if (me === 1) { deal(); render(); broadcast(); } else g("ocInfo").textContent = "🟢 연결됨! 카드 나누는 중…";
+    }
+    stage.querySelectorAll("[data-m]").forEach(b => b.onclick = () => {
+      mode = b.dataset.m; stage.querySelectorAll("[data-m]").forEach(x => x.classList.toggle("sel", x === b)); over = true; S = null;
+      if (mode === "online") { g("ocSetup").style.display = "block"; g("ocGame").style.display = "none"; }
+      else { g("ocSetup").style.display = "none"; g("ocGame").style.display = "block"; g("ocInfo").textContent = "🤖 AI와 원카드! 아래 시작을 누르세요"; g("ocHand").innerHTML = ""; g("ocOpp").innerHTML = ""; g("ocTop").innerHTML = ""; }
+    });
+    g("ocStart").onclick = () => { if (mode === "ai") startAI(); };
+    g("ocDraw").onclick = drawMove;
+    wireOnlineSetup("oc", net, onStart, onData);
+  }
+
+  /* ===== 🧱 벽돌쌓기 (Breakout) — 최고점수 온라인 랭킹 ===== */
+  function buildBrick() {
+    const W = Math.min(360, (window.innerWidth || 360) - 36), H = 440;
+    stage.innerHTML =
+      '<div class="game-info"><span id="brScore">점수 0</span><span id="brBest">🏆 ' + getBest("brick") + '</span></div>' +
+      '<canvas id="brCv" width="' + W + '" height="' + H + '" style="display:block;margin:8px auto;background:#0f1030;border-radius:12px;touch-action:none;max-width:100%"></canvas>' +
+      '<div class="plane-hint" id="brMsg">화면을 눌러 시작! 바를 좌우로 움직여 공을 튕겨 벽돌을 깨세요.</div>';
+    const cv = document.getElementById("brCv"), ctx = cv.getContext("2d");
+    const scoreEl = document.getElementById("brScore"), bestEl = document.getElementById("brBest"), msgEl = document.getElementById("brMsg");
+    const cols = 6, bw = W / cols, bh = 20, brickTop = 36, rows = 5;
+    let bricks, paddle, ball, score, lives, state = "ready", live = true;
+    onCleanup(() => { live = false; });
+    function mkBricks() { bricks = []; for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) bricks.push({ x: c * bw, y: brickTop + r * bh, alive: true, hue: 200 + r * 26 }); }
+    function reset() { mkBricks(); paddle = { w: Math.max(60, W * 0.24), x: W / 2 }; ball = { x: W / 2, y: H - 60, vx: 0, vy: 0, r: 7 }; score = 0; lives = 3; state = "ready"; scoreEl.textContent = "점수 0"; render(); }
+    function nextLevel() { mkBricks(); ball = { x: paddle.x, y: H - 60, vx: 0, vy: 0, r: 7 }; state = "ready"; }
+    function launch() { if (state !== "ready") return; const sp = Math.min(6, W / 62); ball.vx = (Math.random() < .5 ? -1 : 1) * sp * 0.6; ball.vy = -sp; state = "play"; }
+    function over() { state = "over"; setBest("brick", score); bestEl.textContent = "🏆 " + getBest("brick"); msgEl.textContent = "게임 오버! 점수 " + score + " · 화면을 눌러 다시"; }
+    function step() {
+      if (!live) return;
+      if (state === "play") {
+        ball.x += ball.vx; ball.y += ball.vy;
+        if (ball.x < ball.r) { ball.x = ball.r; ball.vx *= -1; } if (ball.x > W - ball.r) { ball.x = W - ball.r; ball.vx *= -1; }
+        if (ball.y < ball.r) { ball.y = ball.r; ball.vy *= -1; }
+        const py = H - 24;
+        if (ball.vy > 0 && ball.y > py - 10 && ball.y < py + 6 && Math.abs(ball.x - paddle.x) < paddle.w / 2 + ball.r) { ball.vy = -Math.abs(ball.vy); ball.vx = (ball.x - paddle.x) / (paddle.w / 2) * 5.5; ball.y = py - 10; }
+        for (const b of bricks) { if (b.alive && ball.x > b.x - ball.r && ball.x < b.x + bw + ball.r && ball.y > b.y - ball.r && ball.y < b.y + bh + ball.r) { b.alive = false; ball.vy *= -1; score += 10; scoreEl.textContent = "점수 " + score; break; } }
+        if (!bricks.some(b => b.alive)) { score += 50; scoreEl.textContent = "점수 " + score; nextLevel(); }
+        if (ball.y > H + 20) { lives--; if (lives <= 0) { over(); } else { state = "ready"; ball = { x: paddle.x, y: H - 60, vx: 0, vy: 0, r: 7 }; } }
+      }
+      render(); requestAnimationFrame(step);
+    }
+    function render() {
+      ctx.clearRect(0, 0, W, H);
+      for (const b of bricks) { if (!b.alive) continue; ctx.fillStyle = "hsl(" + b.hue + ",68%,60%)"; ctx.fillRect(b.x + 2, b.y + 2, bw - 4, bh - 4); }
+      ctx.fillStyle = "#fff"; ctx.fillRect(paddle.x - paddle.w / 2, H - 28, paddle.w, 10);
+      ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, 7); ctx.fillStyle = "#fde68a"; ctx.fill();
+      ctx.fillStyle = "#fff"; ctx.font = "14px sans-serif"; ctx.fillText("♥".repeat(Math.max(0, lives)), 8, 20);
+    }
+    function move(clientX) { const rect = cv.getBoundingClientRect(); const x = Math.max(paddle.w / 2, Math.min(W - paddle.w / 2, (clientX - rect.left) * (W / rect.width))); paddle.x = x; if (state === "ready") ball.x = x; render(); }
+    cv.addEventListener("pointermove", e => move(e.clientX));
+    cv.addEventListener("pointerdown", e => { move(e.clientX); if (state === "ready") launch(); else if (state === "over") reset(); });
+    reset(); requestAnimationFrame(step);
   }
 
   function buildSchulte() {
